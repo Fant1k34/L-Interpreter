@@ -50,4 +50,19 @@ instance (Num a, Show a) => Show (F a) where
     show (Fun name arguments statement) = "function " ++ name ++ (foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments) ++ " <- " ++ show statement
 
 
-data S a = Pris X (E a) | FunExec (F a) [A a] | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | Seq (S a) (S a) | Skip deriving(Eq, Show)
+data S a = Pris X (E a) | FunExec (F a) [A a] | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | Seq (S a) (S a) | Skip deriving(Eq)
+
+instance (Num a, Show a) => Show (S a) where
+    show (Pris var expr) = show var ++ " = " ++ show expr
+    show (FunExec (Fun name _ _) arguments) = name ++ (foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments)
+    show (Write expr) = "write " ++ show expr
+    show (Read var) = "read " ++ show var
+    show (While cond expr) = "while (" ++ show cond ++ ") do " ++ show expr
+    show (If cond expr1 expr2) = "if (" ++ show cond ++ ") then (" ++ show expr1 ++ ") else (" ++ show expr2 ++ ")"
+    show (Seq statement1 statement2) = show statement1 ++ "; \n" ++ show statement2
+
+-- Example of S:
+-- Seq (Pris (Var "x") (Val 8)) ( If (CE (AsExpr (Var "x")) Eql (Val 4)) (Write (AsExpr (Var "Okej"))) (Write (AsExpr (Var "Not okej"))) )
+-- It means:
+-- x = 8;
+-- if (x == 4) then (write Okej) else (write Not okej)
