@@ -87,21 +87,7 @@ evalExpr (FunCall funCallName sentArgs) = do
 
     case function of
         Left comment -> lift $ Left comment
-        Right (Fun name args innerFunctions body) -> (do
-            -- TODO: Проверить, если количество аргументов не будет сходится...
-            let newExecutionBlock = (innerFunctions, zip args sentArgs)
-
-            Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
-
-            result <- evalStatement body
-
-            Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
-                [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
-                (_ : tailOfStackExec) -> tailOfStackExec
-                )
-
-            lift $ Right result
-            )
+        Right fun -> evalFunc fun sentArgs
 
 
 handlePlus :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
@@ -194,4 +180,39 @@ subEval mappingFirst mappingSecond cast exprEvaluated1 exprEvaluated2 op = do
 
 
 evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (Either String) (E a)
-evalStatement statement = undefined
+evalStatement (ExprAsS expr) = evalExpr expr
+
+evalStatement (If cond s1 s2) = do
+    result <- evalExpr cond
+
+    case result of
+        Boolean value -> if value then evalStatement s1 else evalStatement s2
+        notBoolean -> lift $ Left $ "If condition may be applied only to boolean expressions, but got " ++ show notBoolean
+
+evalStatement (Seq s1 s2) = do
+    evalStatement s1
+    evalStatement s2
+
+
+
+evalFunc :: (Floating a, Show a, Ord a) => F a -> [E a] -> StateT [([F a], [(X, E a)])] (Either String) (E a)
+evalFunc (Fun name args innerFunctions body) sentArgs = do
+    let newExecutionBlock = (innerFunctions, zip args sentArgs)
+
+    Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
+
+    result <- evalStatement body
+
+    Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+        [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
+        (_ : tailOfStackExec) -> tailOfStackExec
+        )
+
+    lift $ Right result
+
+
+
+
+
+
+
