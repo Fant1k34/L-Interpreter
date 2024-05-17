@@ -2,7 +2,7 @@
 {-# LANGUAGE InstanceSigs #-}
 module Data where
 
-data Op2 = Plus | Min | Mult | Del | Div | Mod | Eql | NotEql | More | MoreEql | Less | LessEql | And | Or deriving(Eq)
+data Op2 = Plus | Min | Mult | Del | Eql | NotEql | More | MoreEql | Less | LessEql | And | Or deriving(Eq)
 
 instance Show Op2 where
     show :: Op2 -> String
@@ -10,8 +10,6 @@ instance Show Op2 where
     show Min = "-"
     show Mult = "*"
     show Del = "/"
-    show Div = "//"
-    show Mod = "%"
     show Eql = "=="
     show NotEql = "!="
     show More = ">"
@@ -29,7 +27,7 @@ instance Show X where
     show (Var variable) = variable
 
 
-data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunExecToExpr (F a) [E a] deriving(Eq)
+data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunCall String [E a] deriving(Eq)
 
 instance (Num a, Show a) => Show (E a) where
     show :: (Num a, Show a) => E a -> String
@@ -38,8 +36,7 @@ instance (Num a, Show a) => Show (E a) where
     show (Boolean value) = show value
     show (Str value) = "\"" ++ value ++ "\""
     show (CE expr1 op expr2) = show expr1 ++ " " ++ show op ++ " " ++ show expr2
-    show (FunExecToExpr (Fun name _ _) arguments) = name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
-
+    show (FunCall functionName arguments) = functionName ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
 
 instance Functor E where
     fmap :: (a -> b) -> E a -> E b
@@ -50,20 +47,20 @@ instance Functor E where
     fmap f (CE expr1 op expr2) = CE (f <$> expr1) op (f <$> expr2)
 
 
--- Fun "first" [(Var "x"), (Var "y")] (If (Boolean True) (VarAsExpr (Var "x")) (Number 7))
-data F a = Fun String [X] (S a) deriving(Eq)
+-- Fun "first" [(Var "x"), (Var "y")] [] (If (Boolean True) (VarAsExpr (Var "x")) (Number 7))
+-- Функция - основной элемент выполнения. В нем могут быть другие функции и так далее
+data F a = Fun String [X] [F a] (S a) deriving(Eq)
 
 instance (Num a, Show a) => Show (F a) where
     show :: (Num a, Show a) => F a -> String
-    show (Fun name arguments statement) = "function " ++ name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments ++ " <- " ++ show statement
+    show (Fun name arguments listOfFunctions statement) = "function " ++ name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments ++ " <- " ++ foldl (\prev curr -> prev ++ "\n\t" ++ show curr) "\n\t" listOfFunctions ++ show statement
 
 
-data S a = Pris X (E a) | FunExec (F a) [E a] | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | ExprAsS (E a) | Seq (S a) (S a) | Skip deriving(Eq)
+data S a = ExprAsS (E a) | Pris X (E a) | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | Seq (S a) (S a) | Skip deriving(Eq)
 
 instance (Num a, Show a) => Show (S a) where
     show :: (Num a, Show a) => S a -> String
     show (Pris var expr) = show var ++ " = " ++ show expr
-    show (FunExec (Fun name _ _) arguments) = name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
     show (Write expr) = "write " ++ show expr
     show (Read var) = "read " ++ show var
     show (While cond expr) = "while (" ++ show cond ++ ") do " ++ show expr
@@ -77,16 +74,3 @@ instance (Num a, Show a) => Show (S a) where
 -- It means:
 -- x = 8;
 -- if (x == 4) then (write Okej) else (write Not okej)
-
-data FDs a = NullFunction | AddFunction (F a) | ConcatFunctions (FDs a) (FDs a) deriving(Eq)
-
-instance (Num a, Show a) => Show (FDs a) where
-    show NullFunction = ""
-    show (AddFunction function) = show function
-    show (ConcatFunctions function1 function2) = (show function1) ++ "\n\n" ++ (show function2)
-
-
-data P a = Program (FDs a) (S a) deriving(Eq)
-
-instance (Num a, Show a) => Show (P a) where
-    show (Program fd s) = show fd ++ "\n\n" ++ show s

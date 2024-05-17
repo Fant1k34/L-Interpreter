@@ -70,19 +70,19 @@ evalExpr (CE expr1 op expr2) = do
     lift $ operation exprEvaluated1 exprEvaluated2
 
 
-evalExpr (FunExecToExpr (Fun name args body) sentArgs) = do
-    let newExecutionBlock = ([Fun name args body], zip args sentArgs)
+-- evalExpr (FunCall funName sentArgs) = do
+    -- let newExecutionBlock = ([Fun name args body], zip args sentArgs)
 
-    Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
+    -- Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
 
-    result <- evalStatement body
+    -- result <- evalStatement body
 
-    Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
-        [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
-        (h : tail) -> tail
-        )
+    -- Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+        -- [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
+        -- (h : tail) -> tail
+        -- )
 
-    lift $ Right result
+    -- lift $ Right result
 
 
 
