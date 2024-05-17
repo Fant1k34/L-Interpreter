@@ -1,5 +1,7 @@
 {-# OPTIONS_GHC -Wno-incomplete-patterns #-}
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
+{-# OPTIONS_GHC -Wno-unrecognised-pragmas #-}
+{-# HLINT ignore "Use lambda-case" #-}
 module Lib where
 
 import Data
@@ -69,22 +71,37 @@ evalExpr (CE expr1 op expr2) = do
 
     lift $ operation exprEvaluated1 exprEvaluated2
 
+-- Не стоит создавать функции с одинаковыми именами - я не знаю, как всё отработает)))
+-- Другие языки программирования запрещают, поэтому и я тоже запрещу!
+-- Создаю новый объект исполнения
+evalExpr (FunCall funCallName sentArgs) = do
+    stackEnv <- get
 
--- evalExpr (FunCall funName sentArgs) = do
-    -- let newExecutionBlock = ([Fun name args body], zip args sentArgs)
+    let function = foldl (\prevValue (funList, _) -> case prevValue of
+            Right value -> Right value
+            Left comment ->
+                case filter (\ (Fun name _ _ _) -> name == funCallName) funList of
+                    (foundFunction : _) -> Right foundFunction
+                    [] -> Left comment
+                 ) (Left $ "Function " ++ show funCallName ++ " does not exist in context") stackEnv
 
-    -- Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
+    case function of
+        Left comment -> lift $ Left comment
+        Right (Fun name args innerFunctions body) -> (do
+            -- TODO: Проверить, если количество аргументов не будет сходится...
+            let newExecutionBlock = (innerFunctions, zip args sentArgs)
 
-    -- result <- evalStatement body
+            Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
 
-    -- Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
-        -- [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
-        -- (h : tail) -> tail
-        -- )
+            result <- evalStatement body
 
-    -- lift $ Right result
+            Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+                [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
+                (_ : tailOfStackExec) -> tailOfStackExec
+                )
 
-
+            lift $ Right result
+            )
 
 
 handlePlus :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
