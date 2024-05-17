@@ -8,7 +8,7 @@ import Data.Either (Either)
 
 import Control.Monad (Monad(return), foldM)
 import Control.Monad.State
-import Control.Monad.Trans.State.Lazy (StateT)
+import Control.Monad.Trans.State.Lazy (StateT, modify)
 
 import Control.Applicative (Alternative((<|>), empty))
 import Data.Foldable1 (foldlM1, Foldable1 (fold1))
@@ -38,24 +38,23 @@ getStringFromE expr = Left $ "Expression " ++ show expr ++ " is not a String"
 -- (FunctionsScope, VarScope) - SliceBlock
 -- FunctionScope - список из функций в текущем SliceBlock
 -- VarScope - список из переменных (область видимости переменных)
--- Последний SliceBlock -- самый вложенный. Первый - глобальный. При запуске функции добавляется новый SliceBlock в Глобальный выполнения
-evalExpr :: (Floating a, Show a, Ord a) => E a -> StateT [([F a], [(X, a)])] (Either String) (E a)
-evalExpr (VarAsExpr var) = do
-    -- (varList, funList) <- get
-    env <- get
+-- Последний SliceBlock -- глобальный. Первый - самый вложенный. При запуске функции добавляется новый SliceBlock в Глобальный стек выполнения
 
-    let stackEnv = reverse env
+-- evalStateT (evalExpr $ CE (CE (Number 5) Plus (VarAsExpr (Var "x"))) Eql (Number 7)) [([], [(Var "x", Number 3)]), ([], [(Var "x", Number 2)])]
+evalExpr :: (Floating a, Show a, Ord a) => E a -> StateT [([F a], [(X, E a)])] (Either String) (E a)
+evalExpr (VarAsExpr var) = do
+    stackEnv <- get
 
     let result = foldl (\prevValue (_, varList) -> case prevValue of
             Right value -> Right value
-            Left comment -> 
+            Left comment ->
                 case lookup var varList of
-                    Just x -> Right $ Number x
+                    Just x -> Right x
                     Nothing -> Left comment
                  ) (Left $ "Variable " ++ show var ++ " does not exist in context") stackEnv
 
     lift result
-    
+
 
 evalExpr (Number value) = lift $ return $ Number value
 
@@ -70,7 +69,20 @@ evalExpr (CE expr1 op expr2) = do
 
     lift $ operation exprEvaluated1 exprEvaluated2
 
--- evalExpr (FunExecToExpr (Fun name args body) sentArgs) = do
+
+evalExpr (FunExecToExpr (Fun name args body) sentArgs) = do
+    let newExecutionBlock = ([Fun name args body], zip args sentArgs)
+
+    Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
+
+    result <- evalStatement body
+
+    Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+        [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
+        (h : tail) -> tail
+        )
+
+    lift $ Right result
 
 
 
@@ -162,3 +174,7 @@ subEval mappingFirst mappingSecond cast exprEvaluated1 exprEvaluated2 op = do
     result2 <- mappingSecond exprEvaluated2
 
     return $ cast $ op result1 result2
+
+
+evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (Either String) (E a)
+evalStatement statement = undefined

@@ -29,8 +29,7 @@ instance Show X where
     show (Var variable) = variable
 
 
-data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunExecToExpr (F a) [A a] deriving(Eq)
-
+data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunExecToExpr (F a) [E a] deriving(Eq)
 
 instance (Num a, Show a) => Show (E a) where
     show :: (Num a, Show a) => E a -> String
@@ -51,15 +50,6 @@ instance Functor E where
     fmap f (CE expr1 op expr2) = CE (f <$> expr1) op (f <$> expr2)
 
 
-
-
-data A a = Arg (E a) deriving(Eq)
-
-instance (Num a, Show a) => Show (A a) where
-    show :: (Num a, Show a) => A a -> String
-    show (Arg expr) = "Arg: " ++ show expr
-
-
 -- Fun "first" [(Var "x"), (Var "y")] (If (Boolean True) (VarAsExpr (Var "x")) (Number 7))
 data F a = Fun String [X] (S a) deriving(Eq)
 
@@ -68,7 +58,7 @@ instance (Num a, Show a) => Show (F a) where
     show (Fun name arguments statement) = "function " ++ name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments ++ " <- " ++ show statement
 
 
-data S a = Pris X (E a) | FunExec (F a) [A a] | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | ExprAsS (E a) | Seq (S a) (S a) | Skip deriving(Eq)
+data S a = Pris X (E a) | FunExec (F a) [E a] | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | ExprAsS (E a) | Seq (S a) (S a) | Skip deriving(Eq)
 
 instance (Num a, Show a) => Show (S a) where
     show :: (Num a, Show a) => S a -> String
