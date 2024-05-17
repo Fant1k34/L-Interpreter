@@ -33,14 +33,29 @@ getStringFromE (Str value) = Right value
 getStringFromE expr = Left $ "Expression " ++ show expr ++ " is not a String"
 
 -- Функция для вычисления выражения. Возвращает либо Строку, либо Выражение (которое должно содержать либо строку, либо число, либо булеан)
--- В состоянии хранится кортеж из списка переменных и их значений, а также из списка функций, доступных для использования
-evalExpr :: (Num a, Show a) => E a -> StateT ([(X, a)], [F a]) (Either String) (E a)
+-- В состоянии хранится список из кортежей из списка переменных и их значений, а также из списка функций, доступных для использования
+-- [SliceBlock, SliceBlock, ..., SliceBlock] - Глобальный стек выполнения
+-- (FunctionsScope, VarScope) - SliceBlock
+-- FunctionScope - список из функций в текущем SliceBlock
+-- VarScope - список из переменных (область видимости переменных)
+-- Последний SliceBlock -- самый вложенный. Первый - глобальный. При запуске функции добавляется новый SliceBlock в Глобальный выполнения
+evalExpr :: (Floating a, Show a, Ord a) => E a -> StateT [([F a], [(X, a)])] (Either String) (E a)
 evalExpr (VarAsExpr var) = do
-    (varList, funList) <- get
+    -- (varList, funList) <- get
+    env <- get
 
-    case lookup var varList of
-        Just x -> lift $ Right $ Number x
-        Nothing -> lift $ Left $ "Variable " ++ show var ++ " does not exist in context"
+    let stackEnv = reverse env
+
+    let result = foldl (\prevValue (_, varList) -> case prevValue of
+            Right value -> Right value
+            Left comment -> 
+                case lookup var varList of
+                    Just x -> Right $ Number x
+                    Nothing -> Left comment
+                 ) (Left $ "Variable " ++ show var ++ " does not exist in context") stackEnv
+
+    lift result
+    
 
 evalExpr (Number value) = lift $ return $ Number value
 
@@ -49,52 +64,101 @@ evalExpr (Boolean value) = lift $ return $ Boolean value
 evalExpr (Str value) = lift $ return $ Str value
 
 evalExpr (CE expr1 op expr2) = do
-    -- Получаем состояние
-    currentState <- get
-
-    -- Вычисляем левое и правое выражения
     exprEvaluated1 <- evalExpr expr1
     exprEvaluated2 <- evalExpr expr2
+    let operation = defineOperation op
 
-    -- Определяем возможные комбинации для оператора op
-    -- Например, для операции == мы должны рассмотреть два варианта:
-    -- - сравнение двух чисел
-    -- - сравнение двух Bool
-    -- ...
-    -- В результате получаем массив из кортежей, где содержится:
-    -- 1. Функция для перевода первого Expression в рассматриваемый тип (функции могут быть разные, например с оператором сравнения можно сначала попробовать перевести всё в тип Number, а потом в Boolean)
-    -- 2. Функция для перевода второго Expression в рассматриваемый тип
-    -- 3. Функция для кастинга результата операции
-    -- 4. Первый Expression
-    -- 5. Второй Expression
-    let possibleMappingForOperator = definePossibleMapping op exprEvaluated1 exprEvaluated2
+    lift $ operation exprEvaluated1 exprEvaluated2
 
-    -- Получаем всевозможные результаты вычислений...
-    let values = map (\(mappingFirst, mappingSecond, cast, expression1, expression2) ->
-            subEval mappingFirst mappingSecond cast expression1 expression2
-            ) possibleMappingForOperator
-
-    -- Избавляемся от StateT эффекта за счёт того, что определяем состояние
-    let a = map (\el -> evalStateT el currentState) values
-
-    -- Получаем финальный результат: Получилось ли осуществить хоть какое-нибудь преобразование...
-    resultFinal <- lift $ foldl (\prev curr -> case prev of
-        Right value -> Right value
-        Left _ -> curr
-        ) (Left "") a
-
-    lift $ return resultFinal
-
-    where
-        definePossibleMapping op exprEvaluated1 exprEvaluated2
-            | op == Min || op == Del || op == Div || Mod == Mod = [(getNumberFromE, getNumberFromE, Number, exprEvaluated1, exprEvaluated2)]
-            | otherwise = [(getNumberFromE, getNumberFromE, Number, exprEvaluated1, exprEvaluated2)]
+-- evalExpr (FunExecToExpr (Fun name args body) sentArgs) = do
 
 
 
-subEval :: (Num a, Show a) => (E a -> Either String a) -> (E a -> Either String a) -> (a -> E a) -> E a -> E a -> StateT ([(X, a)], [F a]) (Either String) (E a)
-subEval mappingFirst mappingSecond cast exprEvaluated1 exprEvaluated2 = do
-    result1 <- lift $ mappingFirst exprEvaluated1
-    result2 <- lift $ mappingSecond exprEvaluated2
 
-    return $ cast $ result1 + result2
+handlePlus :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handlePlus (Number value1) (Number value2) = Right $ Number $ value1 + value2
+handlePlus (Str value1) (Str value2) = Right $ Str $ value1 ++ value2
+handlePlus expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " + " ++ show expr2
+
+
+handleMinus :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleMinus (Number value1) (Number value2) = Right $ Number $ value1 - value2
+handleMinus expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " - " ++ show expr2
+
+
+handleMult :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleMult (Number value1) (Number value2) = Right $ Number $ value1 * value2
+handleMult expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " * " ++ show expr2
+
+
+handleDel :: (Fractional a, Show a) => E a -> E a -> Either String (E a)
+handleDel (Number value1) (Number value2) = Right $ Number $ value1 / value2
+handleDel expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " / " ++ show expr2
+
+
+handleEql :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleEql (Number value1) (Number value2) = Right $ Boolean $ value1 == value2
+handleEql (Str value1) (Str value2) = Right $ Boolean $ value1 == value2
+handleEql (Boolean value1) (Boolean value2) = Right $ Boolean $ value1 == value2
+handleEql expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " % " ++ show expr2
+
+
+handleNotEql :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleNotEql expr1 expr2 = case handleEql expr1 expr2 of
+    Right (Boolean value) -> Right $ Boolean $ not value
+    Left comment -> Left comment
+
+
+handleMore :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleMore (Number value1) (Number value2) = Right $ Boolean $ value1 > value2
+handleMore expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " > " ++ show expr2
+
+
+handleMoreEql :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleMoreEql (Number value1) (Number value2) = Right $ Boolean $ value1 >= value2
+handleMoreEql expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " >= " ++ show expr2
+
+
+handleLess :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleLess (Number value1) (Number value2) = Right $ Boolean $ value1 < value2
+handleLess expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " < " ++ show expr2
+
+
+handleLessEql :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleLessEql (Number value1) (Number value2) = Right $ Boolean $ value1 <= value2
+handleLessEql expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " <= " ++ show expr2
+
+
+handleAnd :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleAnd (Boolean value1) (Boolean value2) = Right $ Boolean $ value1 && value2
+handleAnd expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " && " ++ show expr2
+
+
+handleOr :: (Num a, Ord a, Show a) => E a -> E a -> Either String (E a)
+handleOr (Boolean value1) (Boolean value2) = Right $ Boolean $ value1 || value2
+handleOr expr1 expr2 = Left $ "No possible operation for: " ++ show expr1 ++ " || " ++ show expr2
+
+
+defineOperation :: (Floating a, Show a, Ord a) => Op2 -> (E a -> E a -> Either String (E a))
+defineOperation op
+            | op == Plus = handlePlus
+            | op == Min = handleMinus
+            | op == Mult = handleMult
+            | op == Del = handleDel
+            | op == Eql = handleEql
+            | op == NotEql = handleNotEql
+            | op == More = handleMore
+            | op == MoreEql = handleMoreEql
+            | op == Less = handleLess
+            | op == LessEql = handleLessEql
+            | op == And = handleAnd
+            | op == Or = handleOr
+            | otherwise = \_ _ -> Left "Unsupported operation"
+
+
+subEval :: (Num a, Show a) => (E a -> Either String a) -> (E a -> Either String a) -> (a -> E a) -> E a -> E a -> (a -> a -> a) -> Either String (E a)
+subEval mappingFirst mappingSecond cast exprEvaluated1 exprEvaluated2 op = do
+    result1 <- mappingFirst exprEvaluated1
+    result2 <- mappingSecond exprEvaluated2
+
+    return $ cast $ op result1 result2
