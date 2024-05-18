@@ -3,5 +3,12 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: acme-iot-0.1.0.1@sha256:2e8e331469a7237c6b32bfdaccb44d657a651abe8ad74ca435cfc8549e664859,646
+    pantry-tree:
+      sha256: c6bc85c75ffbc613c40287a096fa5d50f3f264fde7971ed5c76c25685e17835e
+      size: 221
+  original:
+    hackage: acme-iot-0.1.0.1@sha256:2e8e331469a7237c6b32bfdaccb44d657a651abe8ad74ca435cfc8549e664859,646
 snapshots: []

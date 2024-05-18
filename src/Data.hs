@@ -68,6 +68,18 @@ instance (Num a, Show a) => Show (S a) where
     show (ExprAsS expr) = show expr
     show (Seq statement1 statement2) = show statement1 ++ "; \n" ++ show statement2
 
+
+instance Functor S where
+    fmap :: (a -> b) -> S a -> S b
+    fmap f (ExprAsS expr) = ExprAsS $ f <$> expr
+    fmap f (Pris var expr) = Pris var (f <$> expr)
+    fmap f (Write expr) = Write $ f <$> expr
+    fmap f (Read value) = Read value
+    fmap f (While cond expr) = While (f <$> cond) (f <$> expr)
+    fmap f (If cond expr1 expr2) = If (f <$> cond) (f <$> expr1) (f <$> expr2)
+    fmap f (Seq expr1 expr2) = Seq (f <$> expr1) (f <$> expr2)
+
+
 -- Example of S:
 -- Seq (Pris (Var "x") (Number 8)) ( If (CE (VarAsExpr (Var "x")) Eql (Number 4)) (Write (VarAsExpr (Var "Okej"))) (Write (VarAsExpr (Var "Not okej"))) )
 -- Seq (Pris (Var "x") (Number 8)) (If (CE (VarAsExpr (Var "x")) Eql (Number 4)) (Write (Str "Okej")) (Write (Str "Not okej")))
