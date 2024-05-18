@@ -19,6 +19,7 @@ import qualified Control.Monad.RWS as State
 import Data.Maybe (mapMaybe)
 
 import Control.Monad.Trans.IO
+import Text.Printf (printf)
 
 someFunc :: S Int
 someFunc = Seq (Pris (Var "x") (Number 8)) (If (CE (VarAsExpr (Var "x")) Eql (Number 4)) (Write (Str "Okej")) (Write (Str "Not okej")))
@@ -45,7 +46,7 @@ getStringFromE expr = Left $ "Expression " ++ show expr ++ " is not a String"
 -- Последний SliceBlock -- глобальный. Первый - самый вложенный. При запуске функции добавляется новый SliceBlock в Глобальный стек выполнения
 
 -- evalStateT (evalExpr $ CE (CE (Number 5) Plus (VarAsExpr (Var "x"))) Eql (Number 7)) [([], [(Var "x", Number 3)]), ([], [(Var "x", Number 2)])]
-evalExpr :: (Floating a, Show a, Ord a) => E a -> IOT (StateT [([F a], [(X, E a)])] (Either String)) (E a)
+evalExpr :: (Floating a, Show a, Ord a) => E a -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalExpr (VarAsExpr var) = do
     stackEnv <- get
 
@@ -57,21 +58,21 @@ evalExpr (VarAsExpr var) = do
                     Nothing -> Left comment
                  ) (Left $ "Variable " ++ show var ++ " does not exist in context") stackEnv
 
-    lift $ StateT.lift result
+    StateT.lift $ lift result
 
 
-evalExpr (Number value) = lift $ return $ Number value
+evalExpr (Number value) = StateT.lift $ lift $ Right $ Number value
 
-evalExpr (Boolean value) = lift $ return $ Boolean value
+evalExpr (Boolean value) = StateT.lift $ lift $ Right $ Boolean value
 
-evalExpr (Str value) = lift $ return $ Str value
+evalExpr (Str value) = StateT.lift $ lift $ Right $ Str value
 
 evalExpr (CE expr1 op expr2) = do
     exprEvaluated1 <- evalExpr expr1
     exprEvaluated2 <- evalExpr expr2
     let operation = defineOperation op
 
-    lift $ StateT.lift $ operation exprEvaluated1 exprEvaluated2
+    StateT.lift $ lift $ operation exprEvaluated1 exprEvaluated2
 
 -- Не стоит создавать функции с одинаковыми именами - я не знаю, как всё отработает)))
 -- Другие языки программирования запрещают, поэтому и я тоже запрещу!
@@ -90,7 +91,7 @@ evalExpr (FunCall funCallName sentArgs) = do
                  ) (Left $ "Function " ++ show funCallName ++ " does not exist in context") stackEnv
 
     case function of
-        Left comment -> lift $ StateT.lift $ Left comment
+        Left comment -> StateT.lift $ lift $ Left comment
         Right fun -> evalFunc fun evaledArguments
 
 
@@ -183,7 +184,7 @@ subEval mappingFirst mappingSecond cast exprEvaluated1 exprEvaluated2 op = do
     return $ cast $ op result1 result2
 
 
-evalStatement :: (Floating a, Show a, Ord a) => S a -> IOT (StateT [([F a], [(X, E a)])] (Either String)) (E a)
+evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalStatement (ExprAsS expr) = evalExpr expr
 
 evalStatement (If cond s1 s2) = do
@@ -191,27 +192,33 @@ evalStatement (If cond s1 s2) = do
 
     case result of
         Boolean value -> if value then evalStatement s1 else evalStatement s2
-        notBoolean -> lift $ StateT.lift $ Left $ "If condition may be applied only to boolean expressions, but got " ++ show notBoolean
+        notBoolean -> StateT.lift $ lift $ Left $ "If condition may be applied only to boolean expressions, but got " ++ show notBoolean
 
 evalStatement (Seq s1 s2) = do
     evalStatement s1
     evalStatement s2
 
 
+evalStatement (Write value) = do
+    let _ = printf (show value) :: IO () 
 
-evalFunc :: (Floating a, Show a, Ord a) => F a -> [E a] -> IOT (StateT [([F a], [(X, E a)])] (Either String)) (E a)
+    StateT.lift $ lift $ Right $ Str $ show value
+
+
+
+evalFunc :: (Floating a, Show a, Ord a) => F a -> [E a] -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalFunc (Fun name args innerFunctions body) sentArgs = do
     let newExecutionBlock = (innerFunctions, zip args sentArgs)
 
-    lift $ Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
+    Control.Monad.Trans.State.Lazy.modify (newExecutionBlock :)
 
     result <- evalStatement body
 
-    lift $ Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+    Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
         [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
         (_ : tailOfStackExec) -> tailOfStackExec
         )
 
-    lift $ StateT.lift $ Right result
+    StateT.lift $ lift $ Right result
 
 
