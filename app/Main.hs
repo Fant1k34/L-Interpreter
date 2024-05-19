@@ -13,7 +13,7 @@ import Text.Printf (printf)
 
 main :: IO ()
 main = do
-    start
+    start2
     putStrLn ""
 
 
@@ -29,6 +29,20 @@ start = do
 
 
     result <- runIOT $ evalStateT (evalFunc mainL []) [([], [])]
+    print result
+
+    return result
+
+
+start2 :: (Floating a, Show a, Ord a) => IO (Either String (E a))
+start2 = do
+    let invert = Fun "invert" [(Var "x")] [] (ExprAsS (CE (VarAsExpr (Var "x")) Plus (Str "HELLO!")))
+    let getData = Fun "getData" [] [] ReadStr
+
+    let mainM = Fun "main" [] [invert, getData] (ExprAsS (FunCall "invert" [FunCall "getData" []]))
+
+
+    result <- runIOT $ evalStateT (evalFunc mainM []) [([], [])]
     print result
 
     return result

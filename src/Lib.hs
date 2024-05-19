@@ -20,6 +20,8 @@ import Data.Maybe (mapMaybe)
 
 import Control.Monad.Trans.IO
 import Text.Printf (printf)
+import Text.Read (readMaybe)
+import Control.Monad.Trans.Maybe (MaybeT(MaybeT))
 
 someFunc :: S Int
 someFunc = Seq (Pris (Var "x") (Number 8)) (If (CE (VarAsExpr (Var "x")) Eql (Number 4)) (Write (Str "Okej")) (Write (Str "Not okej")))
@@ -199,14 +201,33 @@ evalStatement (Seq s1 s2) = do
     evalStatement s2
 
 
--- evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalStatement (Write value) = do
     valueToWrite <- evalExpr value
+    filename <- evalExpr (VarAsExpr (Var "outputFile"))
 
     StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> print (show valueToWrite)
-    StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> writeFile "example.txt" (show valueToWrite)
 
-    -- StateT.lift $ lift $ Right $ Str $ show value
+    case filename of
+        (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> writeFile name (show valueToWrite)
+        _ -> StateT.lift $ lift $ Left "Variable outputFile is overriden wrongly, no possibility to write to file"
+
+
+evalStatement ReadStr = do
+    input <- StateT.lift $ fromIO $ Right . Str <$> getLine
+
+    StateT.lift $ lift $ Right input
+
+
+
+
+
+
+-- evalStatement (ReadNum value) = do
+--     let input = readMaybe "3.14" :: Maybe Double
+
+--     case input of
+--         Just value -> StateT.lift $ lift $ Right $ Number value
+--         Nothing -> StateT.lift $ lift $ Left "Input value is not Float" 
 
 
 

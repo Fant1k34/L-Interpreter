@@ -29,8 +29,8 @@ instance Show X where
 
 data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunCall String [E a] deriving(Eq)
 
-instance (Num a, Show a) => Show (E a) where
-    show :: (Num a, Show a) => E a -> String
+instance (Show a) => Show (E a) where
+    show :: E a -> String
     show (VarAsExpr var) = show var
     show (Number a) = show a
     show (Boolean value) = show value
@@ -52,17 +52,18 @@ instance Functor E where
 data F a = Fun String [X] [F a] (S a) deriving(Eq)
 
 instance (Num a, Show a) => Show (F a) where
-    show :: (Num a, Show a) => F a -> String
+    show :: F a -> String
     show (Fun name arguments listOfFunctions statement) = "function " ++ name ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments ++ " <- " ++ foldl (\prev curr -> prev ++ "\n\t" ++ show curr) "\n\t" listOfFunctions ++ show statement
 
 
-data S a = ExprAsS (E a) | Pris X (E a) | Write (E a) | Read X | While (E a) (S a) | If (E a) (S a) (S a) | Seq (S a) (S a) | Skip deriving(Eq)
+data S a = ExprAsS (E a) | Pris X (E a) | Write (E a) | ReadStr | ReadNum | While (E a) (S a) | If (E a) (S a) (S a) | Seq (S a) (S a) | Skip deriving(Eq)
 
 instance (Num a, Show a) => Show (S a) where
-    show :: (Num a, Show a) => S a -> String
+    show :: S a -> String
     show (Pris var expr) = show var ++ " = " ++ show expr
     show (Write expr) = "write " ++ show expr
-    show (Read var) = "read " ++ show var
+    show (ReadStr) = "read "
+    show (ReadNum) = "read "
     show (While cond expr) = "while (" ++ show cond ++ ") do " ++ show expr
     show (If cond expr1 expr2) = "if (" ++ show cond ++ ") then (" ++ show expr1 ++ ") else (" ++ show expr2 ++ ")"
     show (ExprAsS expr) = show expr
@@ -74,7 +75,8 @@ instance Functor S where
     fmap f (ExprAsS expr) = ExprAsS $ f <$> expr
     fmap f (Pris var expr) = Pris var (f <$> expr)
     fmap f (Write expr) = Write $ f <$> expr
-    fmap f (Read value) = Read value
+    fmap f (ReadStr) = ReadStr
+    fmap f (ReadNum) = ReadNum
     fmap f (While cond expr) = While (f <$> cond) (f <$> expr)
     fmap f (If cond expr1 expr2) = If (f <$> cond) (f <$> expr1) (f <$> expr2)
     fmap f (Seq expr1 expr2) = Seq (f <$> expr1) (f <$> expr2)
