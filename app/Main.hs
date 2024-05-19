@@ -51,7 +51,7 @@ start2 = do
 start3 :: (Floating a, Show a, Ord a) => IO (Either String (E a))
 start3 = do
     let getData = Fun "getData" [] [] (ReadStr)
-    let mainM = Fun "main" [] [getData] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Write $ Str "Not AAA"))
+    let mainM = Fun "main" [] [getData] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Seq (Pris (Var "k") (FunCall "getData" [])) (Write $ VarAsExpr (Var "k"))))
 
 
     result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]

@@ -220,14 +220,15 @@ evalStatement ReadStr = do
 
 evalStatement (Pris var expr) = do
     stackEnv <- get
+    evaluatedExpr <- evalExpr expr
 
     let (functionList, varList) = head stackEnv
 
 
     let modifedVarList = case lookup var varList of
-            Nothing -> (var, expr) : varList
+            Nothing -> (var, evaluatedExpr) : varList
             Just _ -> foldl (\prev (key, value) -> 
-                if key == var then (key, expr) : prev else (key, value) : prev
+                if key == var then (key, evaluatedExpr) : prev else (key, value) : prev
                     ) [] varList
 
     let modifedStack = (functionList, modifedVarList)
