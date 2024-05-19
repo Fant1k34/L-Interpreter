@@ -218,6 +218,40 @@ evalStatement ReadStr = do
     StateT.lift $ lift $ Right input
 
 
+evalStatement (Pris var expr) = do
+    stackEnv <- get
+
+    let (functionList, varList) = head stackEnv
+
+
+    let modifedVarList = case lookup var varList of
+            Nothing -> (var, expr) : varList
+            Just _ -> foldl (\prev (key, value) -> 
+                if key == var then (key, expr) : prev else (key, value) : prev
+                    ) [] varList
+
+    let modifedStack = (functionList, modifedVarList)
+
+
+    Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
+        [] -> error "Critical Error. Something went wrong. Execution stack cannot be empty"
+        (_ : tailOfStackExec) -> tailOfStackExec
+        )
+    
+    Control.Monad.Trans.State.Lazy.modify (modifedStack :)
+
+    StateT.lift $ lift $ Right expr
+
+
+evalStatement (While cond body) = do
+    result <- evalExpr cond
+
+    case result of
+        Boolean value -> if value then (do
+            evalStatement body
+            evalStatement (While cond body)
+            ) else StateT.lift $ lift $ Right $ Boolean False
+        notBoolean -> StateT.lift $ lift $ Left $ "If condition may be applied only to boolean expressions, but got " ++ show notBoolean
 
 
 
@@ -240,7 +274,7 @@ evalFunc (Fun name args innerFunctions body) sentArgs = do
     result <- evalStatement body
 
     Control.Monad.Trans.State.Lazy.modify (\stackExec -> case stackExec of
-        [] -> error "Critical Error. Something went wrong. Empty execution stack is not possible"
+        [] -> error "Critical Error. Something went wrong. Execution stack cannot be empty"
         (_ : tailOfStackExec) -> tailOfStackExec
         )
 

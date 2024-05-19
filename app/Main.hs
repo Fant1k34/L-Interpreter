@@ -13,7 +13,7 @@ import Text.Printf (printf)
 
 main :: IO ()
 main = do
-    start2
+    start3
     putStrLn ""
 
 
@@ -43,6 +43,18 @@ start2 = do
 
 
     result <- runIOT $ evalStateT (evalFunc mainM []) [([], [])]
+    print result
+
+    return result
+
+
+start3 :: (Floating a, Show a, Ord a) => IO (Either String (E a))
+start3 = do
+    let getData = Fun "getData" [] [] (ReadStr)
+    let mainM = Fun "main" [] [getData] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Write $ Str "Not AAA"))
+
+
+    result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
     print result
 
     return result
