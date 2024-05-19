@@ -199,10 +199,14 @@ evalStatement (Seq s1 s2) = do
     evalStatement s2
 
 
+-- evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalStatement (Write value) = do
-    let _ = printf (show value) :: IO () 
+    valueToWrite <- evalExpr value
 
-    StateT.lift $ lift $ Right $ Str $ show value
+    StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> print (show valueToWrite)
+    StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> writeFile "example.txt" (show valueToWrite)
+
+    -- StateT.lift $ lift $ Right $ Str $ show value
 
 
 
