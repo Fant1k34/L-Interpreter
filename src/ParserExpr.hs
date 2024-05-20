@@ -98,7 +98,15 @@ sequenceParser p opP = (do
 
 
 expressionParserL4 :: Parser (E Float)
-expressionParserL4 = do
+expressionParserL4 = (do
+    possibleSeparatorParser
+    satisfy (== ')')
+    content <- expressionParserL4
+    satisfy (== ')')
+    possibleSeparatorParser
+
+    return content
+    ) <|> do
     sequenceParser (parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseIndentToExpr) (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["*", "/"]
@@ -108,7 +116,15 @@ expressionParserL4 = do
         )
 
 expressionParserL3 :: Parser (E Float)
-expressionParserL3 = do
+expressionParserL3 = (do
+    possibleSeparatorParser
+    satisfy (== ')')
+    content <- expressionParserL3
+    satisfy (== ')')
+    possibleSeparatorParser
+
+    return content
+    ) <|> do
     sequenceParser expressionParserL4 (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["+", "-"]
@@ -118,7 +134,15 @@ expressionParserL3 = do
         )
 
 expressionParserL2 :: Parser (E Float)
-expressionParserL2 = do
+expressionParserL2 = (do
+    possibleSeparatorParser
+    satisfy (== ')')
+    content <- expressionParserL2
+    satisfy (== ')')
+    possibleSeparatorParser
+
+    return content
+    ) <|> (do
     sequenceParser expressionParserL3 (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["!=", "==", ">=", "<=", ">", "<"]
@@ -126,10 +150,19 @@ expressionParserL2 = do
 
         return appliedOp
         )
+    )
 
 
 expressionParserL1 :: Parser (E Float)
-expressionParserL1 = do
+expressionParserL1 = (do
+    possibleSeparatorParser
+    satisfy (== ')')
+    content <- expressionParserL1
+    satisfy (== ')')
+    possibleSeparatorParser
+
+    return content
+    ) <|> (do
     sequenceParser expressionParserL2 (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> wordParser "&&"
@@ -137,10 +170,19 @@ expressionParserL1 = do
 
         return appliedOp
         )
+    )
 
 
 expressionParserL0 :: Parser (E Float)
-expressionParserL0 = do
+expressionParserL0 = (do
+    possibleSeparatorParser
+    satisfy (== ')')
+    content <- expressionParserL0
+    satisfy (== ')')
+    possibleSeparatorParser
+
+    return content
+    ) <|> do
     sequenceParser expressionParserL1 (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> wordParser "||"
