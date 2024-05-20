@@ -97,11 +97,11 @@ possibleSeparatorParser :: Parser String
 possibleSeparatorParser = separatorParser <|> return ""
 
 
-parserWithSeparator :: Parser a -> String -> Parser [a]
-parserWithSeparator p sep = (do
+parserWithSeparator :: Parser a -> Parser b -> Parser [a]
+parserWithSeparator p sepP = (do
     value <- p
-    wordParser sep
-    results <- parserWithSeparator p sep
+    sepP
+    results <- parserWithSeparator p sepP
 
     return (value : results)
     ) <|> (do
@@ -113,7 +113,7 @@ parserWithSeparator p sep = (do
 
 checkReservedNamesParser :: String -> Parser String
 checkReservedNamesParser word = Parser $ \input -> 
-    let takenNames = ["True", "False", "function", "Write", "Read", "While", "If", "Skip"]
+    let takenNames = ["True", "False", "function", "write", "read", "while", "if", "skip", "do", "then", "else"]
         in
         if word `elem` takenNames then 
             Left $ "Parse Error: Variable name " ++ word ++ " is already reserved" 

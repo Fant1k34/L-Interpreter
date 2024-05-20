@@ -100,6 +100,9 @@ evalExpr (FunCall funCallName sentArgs) = do
 evalStatement :: (Floating a, Show a, Ord a) => S a -> StateT [([F a], [(X, E a)])] (IOT (Either String)) (E a)
 evalStatement (ExprAsS expr) = evalExpr expr
 
+-- TODO: Подумать над реализацией Skip. Какое базовое значение???
+evalStatement Skip = StateT.lift $ lift $ Right $ Boolean True
+
 evalStatement (If cond s1 s2) = do
     result <- evalExpr cond
 

@@ -68,6 +68,7 @@ instance (Num a, Show a) => Show (S a) where
     show (If cond expr1 expr2) = "if (" ++ show cond ++ ") then (" ++ show expr1 ++ ") else (" ++ show expr2 ++ ")"
     show (ExprAsS expr) = show expr
     show (Seq statement1 statement2) = show statement1 ++ "; \n" ++ show statement2
+    show Skip = "..."
 
 
 instance Functor S where
@@ -75,11 +76,12 @@ instance Functor S where
     fmap f (ExprAsS expr) = ExprAsS $ f <$> expr
     fmap f (Pris var expr) = Pris var (f <$> expr)
     fmap f (Write expr) = Write $ f <$> expr
-    fmap f (ReadStr) = ReadStr
-    fmap f (ReadNum) = ReadNum
+    fmap f ReadStr = ReadStr
+    fmap f ReadNum = ReadNum
     fmap f (While cond expr) = While (f <$> cond) (f <$> expr)
     fmap f (If cond expr1 expr2) = If (f <$> cond) (f <$> expr1) (f <$> expr2)
     fmap f (Seq expr1 expr2) = Seq (f <$> expr1) (f <$> expr2)
+    fmap f Skip = Skip
 
 
 -- Example of S:
