@@ -47,6 +47,31 @@ evalExpr (Boolean value) = StateT.lift $ lift $ Right $ Boolean value
 
 evalExpr (Str value) = StateT.lift $ lift $ Right $ Str value
 
+
+-- Делаем фишку с lazy computations внутри условий (как в JavaScript... Иногда она спасает...)
+-- Если первый аргумент False и оператор && - мы скипаем вычисление всего условия
+-- Если первый аргумент False и оператор || - мы вычисляем второе выражение и возвращаем его тип
+--      Что теперь мы можем написать (пример из ReactJS):
+--               (mode == "Manager") && <div>Это окно видит только менеджер</div>
+evalExpr (CE (Boolean False) op expr2) = case op of
+    And -> StateT.lift $ lift $ Right (Boolean False)
+    Or -> (do
+        evalExpr expr2
+        )
+    _ -> StateT.lift $ lift $ Left $ "Wrong condition for expression: False " ++ (show op) ++ (show expr2)
+
+
+-- Делаем фишку с lazy computations внутри условий (как в JavaScript... Иногда она спасает...)
+-- Если первый аргумент True и оператор || - мы скипаем вычисление всего условия
+-- Если первый аргумент True и оператор && - мы вычисляем второе выражение и возвращаем его тип
+evalExpr (CE (Boolean True) op expr2) = case op of
+    Or -> StateT.lift $ lift $ Right (Boolean True)
+    And -> (do
+        evalExpr expr2
+        )
+    _ -> StateT.lift $ lift $ Left $ "Wrong condition for expression: True " ++ (show op) ++ (show expr2)
+
+
 evalExpr (CE expr1 op expr2) = do
     exprEvaluated1 <- evalExpr expr1
     exprEvaluated2 <- evalExpr expr2

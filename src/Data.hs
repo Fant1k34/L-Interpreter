@@ -27,16 +27,16 @@ instance Show X where
     show (Var variable) = variable
 
 
-data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunCall String [E a] deriving(Eq)
+data E a = VarAsExpr X | Number a | Boolean Bool | Str String | CE (E a) Op2 (E a) | FunCall String [E a] deriving(Eq, Show)
 
-instance (Show a) => Show (E a) where
-    show :: E a -> String
-    show (VarAsExpr var) = show var
-    show (Number a) = show a
-    show (Boolean value) = show value
-    show (Str value) = "\"" ++ value ++ "\""
-    show (CE expr1 op expr2) = show expr1 ++ " " ++ show op ++ " " ++ show expr2
-    show (FunCall functionName arguments) = functionName ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
+-- instance (Show a) => Show (E a) where
+--     show :: E a -> String
+--     show (VarAsExpr var) = show var
+--     show (Number a) = show a
+--     show (Boolean value) = show value
+--     show (Str value) = "\"" ++ value ++ "\""
+--     show (CE expr1 op expr2) = show expr1 ++ " " ++ show op ++ " " ++ show expr2
+--     show (FunCall functionName arguments) = functionName ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
 
 instance Functor E where
     fmap :: (a -> b) -> E a -> E b

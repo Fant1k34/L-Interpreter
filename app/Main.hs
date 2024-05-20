@@ -59,7 +59,7 @@ start3 = do
 start4 :: IO (Either String (E Float))
 start4 = do
     let structure = getParserFunc expressionParserL0 "3 * 4 + 5 * 6 - 10 / 2"
-    let structure2 = getParserFunc expressionParserL0 "1 == 2 || 3 * 5 != 20 && 5 + 7 <= 12"
+    let structure2 = getParserFunc expressionParserL0 "8 - 3 - 848 * 4 / 848 * 5.525 / 551 + 48 - 451 * 51 * 5 - 581 / 41 / 541 + 514 * 41 - 8574 + 5 * 9 - 251 - 52.65 + 5811 - 541.8415 + 52 + 41 - 2 - 2 - 5412"
 
     case structure2 of
         Left comment -> (do
@@ -71,6 +71,7 @@ start4 = do
             return result
             )
         Right (_, value) -> (do
+            print value
             let mainM = Fun "main" [] [] (ExprAsS value)
 
             result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
