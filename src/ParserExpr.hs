@@ -117,6 +117,38 @@ expressionParserL3 = do
         return appliedOp
         )
 
+expressionParserL2 :: Parser (E Float)
+expressionParserL2 = do
+    sequenceParser expressionParserL3 (do
+        possibleSeparatorParser
+        appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["!=", "==", ">=", "<=", ">", "<"]
+        possibleSeparatorParser
+
+        return appliedOp
+        )
+
+
+expressionParserL1 :: Parser (E Float)
+expressionParserL1 = do
+    sequenceParser expressionParserL2 (do
+        possibleSeparatorParser
+        appliedOp <- defineActionByZnak <$> wordParser "&&"
+        possibleSeparatorParser
+
+        return appliedOp
+        )
+
+
+expressionParserL0 :: Parser (E Float)
+expressionParserL0 = do
+    sequenceParser expressionParserL1 (do
+        possibleSeparatorParser
+        appliedOp <- defineActionByZnak <$> wordParser "||"
+        possibleSeparatorParser
+
+        return appliedOp
+        )
+
 
 -- unaryOperator :: Integral a => Parser (Expr a)
 -- unaryOperator = do

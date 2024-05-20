@@ -8,7 +8,7 @@ import Eval (evalFunc)
 
 import Control.Monad.Trans.State.Lazy (evalStateT)
 import Control.Monad.Trans.IO (runIOT)
-import ParserExpr (expressionParserL3)
+import ParserExpr (expressionParserL0)
 import Parser (Parser(getParserFunc))
 
 main :: IO ()
@@ -58,9 +58,10 @@ start3 = do
 
 start4 :: IO (Either String (E Float))
 start4 = do
-    let structure = getParserFunc expressionParserL3 "3 * 4 + 5 * 6 - 10 / 2"
+    let structure = getParserFunc expressionParserL0 "3 * 4 + 5 * 6 - 10 / 2"
+    let structure2 = getParserFunc expressionParserL0 "1 == 2 || 3 * 5 != 20 && 5 + 7 <= 12"
 
-    case structure of
+    case structure2 of
         Left comment -> (do
             let mainM = Fun "main" [] [] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Seq (Pris (Var "k") (FunCall "getData" [])) (Write $ VarAsExpr (Var "k"))))
 
