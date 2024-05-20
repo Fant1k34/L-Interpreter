@@ -85,7 +85,7 @@ start4 = do
 
 start5 :: IO (Either String (E Float))
 start5 = do
-    let code = getParserFunc parserStatement "3 * 4 + 5 * 6 - 10 / 2; \t\n\n\t  \n5.55"
+    let code = getParserFunc parserStatement "x := 5; y := 5; if x == y then { write \"They are equal\" } else { write \"They are NOT equal\" }"
 
     case code of
         Left comment -> (do
@@ -96,8 +96,10 @@ start5 = do
 
             return result
             )
-        Right (_, value) -> (do
+        Right (leftover, value) -> (do
             print value
+            print "---"
+            print leftover
             let mainM = Fun "main" [] [] value
 
             result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]

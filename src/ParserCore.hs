@@ -117,4 +117,4 @@ checkReservedNamesParser word = Parser $ \input ->
         in
         if word `elem` takenNames then 
             Left $ "Parse Error: Variable name " ++ word ++ " is already reserved" 
-            else Right ("", input)
+            else Right (input, "")

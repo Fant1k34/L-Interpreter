@@ -35,6 +35,7 @@ instance (Show a) => Show (E a) where
     show (Number a) = show a
     show (Boolean value) = show value
     show (Str value) = "\"" ++ value ++ "\""
+    show (CE (Boolean False) Or expr) = show expr
     show (CE expr1 op expr2) = show expr1 ++ " " ++ show op ++ " " ++ show expr2
     show (FunCall functionName arguments) = functionName ++ foldl (\prev curr -> prev ++ " " ++ show curr) "" arguments
 
