@@ -112,9 +112,9 @@ start5 = do
 
 start6 :: IO (Either String (E Float))
 start6 = do
-    let code = getParserFunc (parserFunc "main" []) "succ n <- { n + 1 } \n x := 5; y := 5; if x == y then { write \"They are equal\" } else { write \"They are NOT equal\" }"
+    let code = getParserFunc (parserFunc "main" []) "getStr name <- { write \"Please, type your code, \" + name; read } x := \"Hello\"; y := getStr \"Nikita\"; if x == y then { write \"They are equal\" } else { write \"They are NOT equal\" }"
 
-    print code
+    -- print code
 
     case code of
         Left comment -> (do
@@ -126,11 +126,6 @@ start6 = do
             return result
             )
         Right (leftover, value) -> (do
-            print value
-            print "---"
-            print leftover
-            -- let mainM = Fun "main" [] [] value
-
             result <- runIOT $ evalStateT (evalFunc value []) [([], [(Var "outputFile", Str "example.txt")])]
             print result
 

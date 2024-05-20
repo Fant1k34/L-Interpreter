@@ -83,6 +83,16 @@ parseBooleanToExpr :: Parser (E a)
 parseBooleanToExpr = (\parsed -> if parsed == "True" then Boolean True else Boolean False) <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["True", "False"]
 
 
+parseFunctionCallToExpr :: Parser (E Float)
+parseFunctionCallToExpr = do
+    funName <- parseIndet
+    separatorParser
+    args <- parserWithSeparator parserExpr separatorParser
+
+    return (FunCall funName args)
+
+
+
 sequenceParser :: Parser (E a) -> Parser Op2 -> Parser (E a)
 sequenceParser p opP = sequenceParser' p opP (Boolean False) Or
 
@@ -104,7 +114,7 @@ sequenceParser' p opP leftValue currentOp = (do
 
 expressionParserL4 :: Parser (E Float)
 expressionParserL4 = do
-    sequenceParser (parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseIndentToExpr) (do
+    sequenceParser (parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr) (do
         possibleSeparatorParser
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["*", "/"]
         possibleSeparatorParser
