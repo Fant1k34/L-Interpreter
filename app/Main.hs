@@ -3,19 +3,16 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module Main (main) where
 
-import Lib
+import Data (F(..), E(..), S(..), X(..), Op2(..))
+import Eval (evalFunc)
 
 import Control.Monad.Trans.State.Lazy (evalStateT)
-import System.IO.Unsafe
-import Control.Monad.Trans.IO
-import Data
-import Text.Printf (printf)
+import Control.Monad.Trans.IO (runIOT)
 
 main :: IO ()
 main = do
     start3
     putStrLn ""
-
 
 
 start :: (Floating a, Show a, Ord a) => IO (Either String (E a))
@@ -26,7 +23,6 @@ start = do
 
     let fib = Fun "fib" [Var "n"] [] (Seq (Write $ VarAsExpr (Var "n")) (Seq (Write $ Str "\n") (If cond pos neg)))
     let mainL = Fun "main" [] [fib] (ExprAsS (FunCall "fib" [Number 25]))
-
 
     result <- runIOT $ evalStateT (evalFunc mainL []) [([], [])]
     print result
@@ -41,7 +37,6 @@ start2 = do
 
     let mainM = Fun "main" [] [invert, getData] (ExprAsS (FunCall "invert" [FunCall "getData" []]))
 
-
     result <- runIOT $ evalStateT (evalFunc mainM []) [([], [])]
     print result
 
@@ -52,7 +47,6 @@ start3 :: (Floating a, Show a, Ord a) => IO (Either String (E a))
 start3 = do
     let getData = Fun "getData" [] [] (ReadStr)
     let mainM = Fun "main" [] [getData] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Seq (Pris (Var "k") (FunCall "getData" [])) (Write $ VarAsExpr (Var "k"))))
-
 
     result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
     print result

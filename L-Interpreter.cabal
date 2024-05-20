@@ -26,7 +26,12 @@ source-repository head
 library
   exposed-modules:
       Data
-      Lib
+      Eval
+      EvalHandlers
+      Parser
+      ParserCore
+      ParserExpr
+      Utils
   other-modules:
       Paths_L_Interpreter
   autogen-modules:
