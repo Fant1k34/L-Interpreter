@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
-module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator) where
+module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser) where
 
 
 import Parser (Parser(..))
@@ -19,6 +19,11 @@ satisfy cond = Parser (\input ->
         (h : t) -> if cond h then Right (t, h) else Left ("Parse Error: Predicate is not followed on " ++ show h ++ " in input " ++ input)
         _ -> Left "Parse Error: Empty input"
         )
+
+
+-- Пустой парсер, который заканчивается всегда успехом
+succesParser :: Parser String
+succesParser = Parser (\input -> Right ("", input))
 
 
 -- Функция принимает Парсер
@@ -52,16 +57,16 @@ parseNumber = do
 
 
 -- Функция парсинга дробных чисел
-parseFloat :: Parser Float
+parseFloat :: (Floating a) => Parser a
 parseFloat = do
     numberList1 <- ((fromInteger . castCharToInt) <$>) <$> some (satisfy isNumber)
     satisfy (== '.')
     numberList2 <- ((fromInteger . castCharToInt) <$>) <$> some (satisfy isNumber)
 
-    let result1 = Prelude.foldl1 concatNumbers numberList1 :: Integer
-    let result2 = Prelude.foldl1 concatNumbers numberList2 :: Integer
+    let result1 = Prelude.foldl1 concatNumbers numberList1
+    let result2 = Prelude.foldl1 concatNumbers numberList2
 
-    let modifiedResult2 = fromInteger result2 / fromInteger (10 ^ length numberList2) :: Float
+    let modifiedResult2 = fromInteger result2 / fromInteger (10 ^ length numberList2)
 
     return $ fromInteger result1 + modifiedResult2
 

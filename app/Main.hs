@@ -8,10 +8,12 @@ import Eval (evalFunc)
 
 import Control.Monad.Trans.State.Lazy (evalStateT)
 import Control.Monad.Trans.IO (runIOT)
+import ParserExpr (expressionParserL3)
+import Parser (Parser(getParserFunc))
 
 main :: IO ()
 main = do
-    start3
+    start4
     putStrLn ""
 
 
@@ -52,3 +54,27 @@ start3 = do
     print result
 
     return result
+
+
+start4 :: IO (Either String (E Float))
+start4 = do
+    let structure = getParserFunc expressionParserL3 "3 * 4 + 5 * 6 - 10 / 2"
+
+    case structure of
+        Left comment -> (do
+            let mainM = Fun "main" [] [] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Seq (Pris (Var "k") (FunCall "getData" [])) (Write $ VarAsExpr (Var "k"))))
+
+            result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
+            print result
+
+            return result
+            )
+        Right (_, value) -> (do
+            let mainM = Fun "main" [] [] (ExprAsS value)
+
+            result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
+            print result
+
+            return result
+            )
+    

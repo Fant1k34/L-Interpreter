@@ -8,75 +8,114 @@
 {-# HLINT ignore "Alternative law, right identity" #-}
 module ParserExpr where
 
--- import Parser (Parser(..))
--- import ParserCore
+import Parser (Parser(..))
+import ParserCore
 
--- import Utils (razryad, concatNumbers, castCharToInt)
+import Utils (razryad, concatNumbers, castCharToInt)
 
--- import Data.Char (isAlpha, isAlphaNum, isNumber, isSeparator)
--- import Control.Applicative (Alternative((<|>), empty))
+import Data.Char (isAlpha, isAlphaNum, isNumber, isSeparator)
+import Control.Applicative (Alternative((<|>), empty))
 
--- -- import Data (Operator1 (..), Operator2 (..), Expr (..), Error (..))
--- import Data.Foldable1 (foldlM1)
+import Data
+import Data.Foldable1 (foldlM1)
 
--- -- import Basement.Floating
--- import GHC.Integer (Integer)
--- import GHC.Real (Integral)
+-- import Basement.Floating
+import GHC.Integer (Integer)
+import GHC.Real (Integral)
 
--- takenNames :: [String]
--- takenNames = ["sqrt", "let", "Nikita"]
-
-
--- defineActionByZnak :: Char -> Operator2
--- defineActionByZnak znak
---     | znak == '-' = Min
---     | znak == '+' = Plus
---     | znak == '*' = Mul
---     | znak == '/' = Div
---     | znak == '^' = In
---     | otherwise = error "Inner Error: Something was broken during parsing. defineActionByZnak got not action"
+takenNames :: [String]
+takenNames = ["True", "False", "function", "Write", "Read", "While", "If", "Skip"]
 
 
--- parseNumberToExpr :: Integral a => Parser (Expr a)
--- parseNumberToExpr = do
---     numberList <- some (castCharToInt <$> (satisfy isNumber))
---     let result = Prelude.foldl1 concatNumbers numberList
-
---     return (Arg result)
-
-
--- parseFracToExpr :: Floating a => Parser (Expr a)
--- parseFracToExpr = do
---     part1List <- some (castCharToInt <$> satisfy isNumber)
---     let part1 = fromInteger (Prelude.foldl1 concatNumbers part1List)
-
---     satisfy (=='.')
-
---     part2List <- some (castCharToInt <$> satisfy isNumber)
---     let part2 = fromInteger (Prelude.foldl1 concatNumbers part2List)
-
---     let result = part1 + part2 / (10 ^ (length part2List))
---     return (Arg result)
+defineActionByZnak :: String -> Op2
+defineActionByZnak znak
+    | znak == "-" = Min
+    | znak == "+" = Plus
+    | znak == "*" = Mult
+    | znak == "/" = Del
+    | znak == "==" = Eql
+    | znak == "!=" = NotEql
+    | znak == ">" = More
+    | znak == ">=" = MoreEql
+    | znak == "<" = Less
+    | znak == "<=" = LessEql
+    | znak == "&&" = And
+    | znak == "||" = Or
+    | otherwise = error "Inner Error: Something was broken during parsing. defineActionByZnak got not action"
 
 
--- parseIndentToExpr :: Num a => Parser (Expr a)
--- parseIndentToExpr = do
---     var <- parseIndet
+parseNumberToExpr :: Parser (E Float)
+parseNumberToExpr = (do
+    number <- parseFloat
 
---     if (foldl1 (||) (map (\word -> word == var) takenNames)) then
---         Parser (\_ -> Left $ "Parse Error: Variable name " ++ var ++ " is already reserved") else return (Var var)
+    return (Number number)
+    ) <|> (do
+    number <- parseNumber
+
+    return (Number $ fromInteger number)
+    )
+
+
+parseIndentToExpr :: Parser (E a)
+parseIndentToExpr = do
+    var <- parseIndet
+
+    if var `elem` takenNames then
+        Parser (\_ -> Left $ "Parse Error: Variable name " ++ var ++ " is already reserved") else return (VarAsExpr (Var var))
 
 
 
--- znakParser :: Parser Operator2
--- znakParser = defineActionByZnak <$> (satisfy (\char -> elem char ['+', '-', '/', '*', '^']))
+znakParser :: Parser Op2
+znakParser = defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["+", "-", "/", "*", "==", "!=", ">=", "<=", ">", "<", "&&", "||"]
 
 
--- unaryParser :: Parser Operator1
--- unaryParser = do
---     wordParser "sqrt"
+parseStrToExpr :: Parser (E a)
+parseStrToExpr = do
+    satisfy (=='\"')
+    content <- ParserCore.any (satisfy (/= '\"'))
+    satisfy (=='\"')
 
---     return Sqrt
+    return (Str content)
+
+
+parseBooleanToExpr :: Parser (E a)
+parseBooleanToExpr = (\parsed -> if parsed == "True" then Boolean True else Boolean False) <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["True", "False"]
+
+
+sequenceParser :: Parser (E a) -> Parser Op2 -> Parser (E a)
+sequenceParser p opP = (do
+    value <- p
+    operator <- opP
+
+    leftover <- sequenceParser p opP
+
+    return (CE value operator leftover)
+    ) <|> (do
+    value <- p
+
+    return value
+    )
+
+
+expressionParserL4 :: Parser (E Float)
+expressionParserL4 = do
+    sequenceParser (parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseIndentToExpr) (do
+        possibleSeparatorParser
+        appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["*", "/"]
+        possibleSeparatorParser
+
+        return appliedOp
+        )
+
+expressionParserL3 :: Parser (E Float)
+expressionParserL3 = do
+    sequenceParser expressionParserL4 (do
+        possibleSeparatorParser
+        appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["+", "-"]
+        possibleSeparatorParser
+
+        return appliedOp
+        )
 
 
 -- unaryOperator :: Integral a => Parser (Expr a)
