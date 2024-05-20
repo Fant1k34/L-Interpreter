@@ -6,7 +6,7 @@
 {-# HLINT ignore "Use <$>" #-}
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 {-# HLINT ignore "Alternative law, right identity" #-}
-module ParserExpr where
+module ParserExpr (parserExpr) where
 
 import Parser (Parser(..))
 import ParserCore
@@ -179,6 +179,14 @@ expressionParserL0 = do
 
         return appliedOp
         )
+
+
+parserExpr :: Parser (E Float)
+parserExpr = do
+    expr <- expressionParserL0
+    isFullyApplied
+
+    return expr
 
 
 -- unaryOperator :: Integral a => Parser (Expr a)
