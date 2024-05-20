@@ -53,6 +53,18 @@ parseNumberToExpr = (do
     number <- parseNumber
 
     return (Number $ fromInteger number)
+    ) <|> (do
+    satisfy (=='-')
+    possibleSeparatorParser
+    number <- parseFloat
+
+    return (Number (number * (-1)))
+    ) <|> (do
+    satisfy (=='-')
+    possibleSeparatorParser
+    number <- parseNumber
+
+    return (Number $ fromInteger (number * (-1)))
     )
 
 
