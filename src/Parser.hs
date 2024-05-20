@@ -5,7 +5,6 @@
 module Parser where
   
 import Control.Applicative (Alternative((<|>), empty) )
-import Control.Monad (when)
 
 -- Парсер из строки в структуру a
 newtype Parser a

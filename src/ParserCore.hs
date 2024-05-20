@@ -1,4 +1,5 @@
-module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator) where
+{-# OPTIONS_GHC -Wno-unused-do-bind #-}
+module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator) where
 
 
 import Parser (Parser(..))
@@ -41,7 +42,7 @@ isFullyApplied :: Parser ()
 isFullyApplied = Parser (\input -> if (length input == 0) then Right (input, ()) else Left ("Parse Error: String is not fully parsed -- " ++ input))
 
 
--- Функция парсинга целых цифр
+-- Функция парсинга целых чисел
 parseNumber :: Parser Integer
 parseNumber = do
     numberList <- (castCharToInt <$>) <$> (some (satisfy isNumber))
@@ -50,18 +51,33 @@ parseNumber = do
     return result
 
 
+-- Функция парсинга дробных чисел
+parseFloat :: Parser Float
+parseFloat = do
+    numberList1 <- ((fromInteger . castCharToInt) <$>) <$> some (satisfy isNumber)
+    satisfy (== '.')
+    numberList2 <- ((fromInteger . castCharToInt) <$>) <$> some (satisfy isNumber)
+
+    let result1 = Prelude.foldl1 concatNumbers numberList1 :: Integer
+    let result2 = Prelude.foldl1 concatNumbers numberList2 :: Integer
+
+    let modifiedResult2 = fromInteger result2 / fromInteger (10 ^ length numberList2) :: Float
+
+    return $ fromInteger result1 + modifiedResult2
+
+
 -- Функция парсинга имен переменных
 parseIndet :: Parser [Char]
 parseIndet = do
     letter <- satisfy isAlpha
     other <- ParserCore.any (satisfy isAlphaNum)
-    return ([letter] ++ other)
+    return (letter : other)
 
 
 -- Функция принимает строку и возвращает парсер, который парсит строку
 wordParser :: String -> Parser String
-wordParser word = if (length word == 0) then return "" else foldl1 (\p1 p2 -> p1 >>= (\successP1 -> Parser (\input -> 
-    case (getParserFunc p2 input) of 
+wordParser word = if (length word == 0) then return "" else foldl1 (\p1 p2 -> p1 >>= (\successP1 -> Parser (\input ->
+    case (getParserFunc p2 input) of
         Left comment -> Left comment
         Right (suff, value) -> Right (suff, successP1 ++ value)))) (map (\char -> ((: []) <$> (satisfy (==char)))) word)
 
@@ -82,7 +98,7 @@ parserWithSeparator p sep = (do
     wordParser sep
     results <- parserWithSeparator p sep
 
-    return ([value] ++ results)
+    return (value : results)
     ) <|> (do
     value <- p
 
