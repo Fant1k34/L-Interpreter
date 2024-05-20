@@ -11,10 +11,11 @@ import Control.Monad.Trans.IO (runIOT)
 import ParserExpr (parserExpr)
 import Parser (Parser(getParserFunc))
 import ParserStatement (parserStatement)
+import ParserFunc (parserFunc)
 
 main :: IO ()
 main = do
-    start5
+    start6
     putStrLn ""
 
 
@@ -103,6 +104,34 @@ start5 = do
             let mainM = Fun "main" [] [] value
 
             result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
+            print result
+
+            return result
+            )
+    
+
+start6 :: IO (Either String (E Float))
+start6 = do
+    let code = getParserFunc (parserFunc "main" []) "succ n <- { n + 1 } \n x := 5; y := 5; if x == y then { write \"They are equal\" } else { write \"They are NOT equal\" }"
+
+    print code
+
+    case code of
+        Left comment -> (do
+            let mainM = Fun "main" [] [] (While (CE (FunCall "getData" []) NotEql (Str "AAA")) (Seq (Pris (Var "k") (FunCall "getData" [])) (Write $ VarAsExpr (Var "k"))))
+
+            result <- runIOT $ evalStateT (evalFunc mainM []) [([], [(Var "outputFile", Str "example.txt")])]
+            print result
+
+            return result
+            )
+        Right (leftover, value) -> (do
+            print value
+            print "---"
+            print leftover
+            -- let mainM = Fun "main" [] [] value
+
+            result <- runIOT $ evalStateT (evalFunc value []) [([], [(Var "outputFile", Str "example.txt")])]
             print result
 
             return result
