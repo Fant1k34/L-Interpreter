@@ -31,6 +31,7 @@ library
       Parser
       ParserCore
       ParserExpr
+      ParserStatement
       Utils
   other-modules:
       Paths_L_Interpreter

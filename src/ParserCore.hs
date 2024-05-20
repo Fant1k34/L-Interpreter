@@ -1,5 +1,5 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
-module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser) where
+module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser, checkReservedNamesParser) where
 
 
 import Parser (Parser(..))
@@ -109,3 +109,12 @@ parserWithSeparator p sep = (do
 
     return [value]
     )
+
+
+checkReservedNamesParser :: String -> Parser String
+checkReservedNamesParser word = Parser $ \input -> 
+    let takenNames = ["True", "False", "function", "Write", "Read", "While", "If", "Skip"]
+        in
+        if word `elem` takenNames then 
+            Left $ "Parse Error: Variable name " ++ word ++ " is already reserved" 
+            else Right ("", input)

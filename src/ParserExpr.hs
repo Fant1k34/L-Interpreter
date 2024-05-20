@@ -11,21 +11,11 @@ module ParserExpr (parserExpr) where
 import Parser (Parser(..))
 import ParserCore
 
-import Utils (razryad, concatNumbers, castCharToInt)
-
-import Data.Char (isAlpha, isAlphaNum, isNumber, isSeparator)
 import Control.Applicative (Alternative((<|>), empty))
 
 import Data
-import Data.Foldable1 (foldlM1)
 
 -- import Basement.Floating
-import GHC.Integer (Integer)
-import GHC.Real (Integral)
-
-takenNames :: [String]
-takenNames = ["True", "False", "function", "Write", "Read", "While", "If", "Skip"]
-
 
 defineActionByZnak :: String -> Op2
 defineActionByZnak znak
@@ -71,10 +61,9 @@ parseNumberToExpr = (do
 parseIndentToExpr :: Parser (E a)
 parseIndentToExpr = do
     var <- parseIndet
+    checkReservedNamesParser var
 
-    if var `elem` takenNames then
-        Parser (\_ -> Left $ "Parse Error: Variable name " ++ var ++ " is already reserved") else return (VarAsExpr (Var var))
-
+    return (VarAsExpr (Var var))
 
 
 znakParser :: Parser Op2
@@ -94,20 +83,6 @@ parseBooleanToExpr :: Parser (E a)
 parseBooleanToExpr = (\parsed -> if parsed == "True" then Boolean True else Boolean False) <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["True", "False"]
 
 
--- sequenceParser :: Parser (E a) -> Parser Op2 -> Parser (E a)
--- sequenceParser p opP = (do
---     value <- p
---     operator <- opP
-
---     leftover <- sequenceParser p opP
-
---     return (CE value operator leftover)
---     ) <|> (do
---     value <- p
-
---     return value
---     )
-
 sequenceParser :: Parser (E a) -> Parser Op2 -> Parser (E a)
 sequenceParser p opP = sequenceParser' p opP (Boolean False) Or
 
@@ -118,7 +93,7 @@ sequenceParser' p opP leftValue currentOp = (do
     operator <- opP
 
     let fullExpr = CE leftValue currentOp value
-    
+
     sequenceParser' p opP fullExpr operator
     ) <|> (do
     value <- p
@@ -184,40 +159,5 @@ expressionParserL0 = do
 parserExpr :: Parser (E Float)
 parserExpr = do
     expr <- expressionParserL0
-    isFullyApplied
 
     return expr
-
-
--- unaryOperator :: Integral a => Parser (Expr a)
--- unaryOperator = do
---     operation <- unaryParser
---     separatorParser
---     value <- expressionParser
-
---     return (Marg operation value)
-
-
--- binaryOperator :: Integral a => Parser (Expr a)
--- binaryOperator = do
---     znak <- znakParser
---     separatorParser
---     value1 <- expressionParser
---     separatorParser
---     value2 <- expressionParser
-
---     return (CE value1 znak value2)
-
-
--- expressionParser :: Integral a => Parser (Expr a)
--- expressionParser = binaryOperator <|> unaryOperator <|> parseIndentToExpr <|> parseNumberToExpr
-
-
--- fullExpressionParser :: Integral a => Parser (Expr a)
--- fullExpressionParser = do
---     possibleSeparatorParser
---     result <- expressionParser
---     possibleSeparatorParser
---     isFullyApplied
-
---     return result
