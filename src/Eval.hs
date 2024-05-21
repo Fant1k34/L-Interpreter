@@ -118,7 +118,7 @@ evalStatement (Write value) = do
     valueToWrite <- evalExpr value
     filename <- evalExpr (VarAsExpr (Var "outputFile"))
 
-    StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> print (show valueToWrite)
+    -- StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> print (show valueToWrite)
 
     case filename of
         (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> writeFile name (show valueToWrite)
