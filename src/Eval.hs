@@ -119,7 +119,7 @@ evalStatement (Write value) = do
     case filename of
         (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> case name of 
             "str.out" -> print valueToWrite
-            _ -> writeFile name (show valueToWrite)
+            _ -> appendFile name (show valueToWrite ++ "\n")
         _ -> StateT.lift $ lift $ Left "Variable outputFile is overriden wrongly, no possibility to write to file"
 
 evalStatement ReadStr = do

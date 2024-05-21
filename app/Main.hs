@@ -3,12 +3,11 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
 module Main (main) where
 
-import Data (F(..), E(..), S(..), X(..), Op2(..))
+import Data (E(..), X(..))
 import Eval (evalFunc)
 
 import Control.Monad.Trans.State.Lazy (evalStateT)
 import Control.Monad.Trans.IO (runIOT)
-import ParserExpr (parserExpr)
 import Parser (Parser(getParserFunc))
 import ParserFunc (parserProgram)
 
@@ -55,7 +54,7 @@ start sourceCode = do
 
     case ast of
         Left comment -> return $ Left $ "Parsing Error: " ++ comment
-        Right (leftover, value) -> (do
+        Right (_, value) -> (do
             result <- runIOT $ evalStateT (evalFunc value []) [([], [(Var "outputFile", Str "output.txt")])]
 
             return result
