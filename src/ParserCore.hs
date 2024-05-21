@@ -1,12 +1,12 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
-module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseInt, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser, checkReservedNamesParser) where
+module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseInt, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser, checkReservedNamesParser, Separator(..)) where
 
 
 import Parser (Parser(..))
 
 import Utils ( castCharToInt, concatNumbers )
 
-import Data.Char (isAlpha, isAlphaNum, isNumber, isSeparator)
+import Data.Char (isAlpha, isAlphaNum, isNumber)
 import Control.Applicative (Alternative((<|>), empty))
 
 
@@ -86,15 +86,20 @@ wordParser word = if (length word == 0) then return "" else foldl1 (\p1 p2 -> p1
         Left comment -> Left comment
         Right (suff, value) -> Right (suff, successP1 ++ value)))) (map (\char -> ((: []) <$> (satisfy (==char)))) word)
 
+-- Inline: " " or "\t"
+-- Multiline: Inline + "\n"
+data Separator = Inline | Multiline
 
 -- Парсер разделителей
-separatorParser :: Parser String
-separatorParser = some (satisfy isSeparator)
+separatorParser :: Separator -> Parser String
+separatorParser sep = case sep of 
+    Inline -> some (satisfy (\el -> el == ' ' || el == '\t'))
+    Multiline -> some (satisfy (\el -> el == ' ' || el == '\t' || el == '\n'))
 
 
 -- Парсер возможных разделителей
-possibleSeparatorParser :: Parser String
-possibleSeparatorParser = separatorParser <|> return ""
+possibleSeparatorParser :: Separator -> Parser String
+possibleSeparatorParser sep = separatorParser sep <|> return ""
 
 
 parserWithSeparator :: Parser a -> Parser b -> Parser [a]

@@ -18,7 +18,8 @@ import ParserCore
       possibleSeparatorParser,
       parserWithSeparator,
       checkReservedNamesParser,
-      parseInt )
+      parseInt,
+      Separator(..) )
 
 import Control.Applicative (Alternative((<|>), empty))
 
@@ -54,13 +55,13 @@ parseNumberToExpr = (do
     return (Number $ fromInteger number)
     ) <|> (do
     satisfy (=='-')
-    possibleSeparatorParser
+    possibleSeparatorParser Inline
     number <- parseFloat
 
     return (Number (number * (-1)))
     ) <|> (do
     satisfy (=='-')
-    possibleSeparatorParser
+    possibleSeparatorParser Inline
     number <- parseInt
 
     return (Number $ fromInteger (number * (-1)))
@@ -91,16 +92,16 @@ parseBooleanToExpr = (\parsed -> if parsed == "True" then Boolean True else Bool
 parseFunctionCallToExpr :: Parser (E Float)
 parseFunctionCallToExpr = do
     funName <- parseIndet
-    possibleSeparatorParser
+    possibleSeparatorParser Inline
 
     satisfy (=='(')
-    possibleSeparatorParser
+    possibleSeparatorParser Inline
     args <- parserWithSeparator parserExpr (do
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         wordParser ","
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         )
-    possibleSeparatorParser
+    possibleSeparatorParser Inline
     satisfy (==')')
 
     return (FunCall funName args)
@@ -126,33 +127,41 @@ sequenceParser' p opP leftValue currentOp = (do
     )
 
 
+expressionParserL5 :: Parser (E Float)
+expressionParserL5 = do
+    parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr
+    
+
+
 expressionParserL4 :: Parser (E Float)
 expressionParserL4 = do
-    sequenceParser (parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr) (do
-        possibleSeparatorParser
+    sequenceParser expressionParserL5 (do
+        possibleSeparatorParser Inline
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["*", "/"]
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
 
         return appliedOp
         )
+    
 
 
 expressionParserL3 :: Parser (E Float)
 expressionParserL3 = do
     sequenceParser expressionParserL4 (do
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["+", "-"]
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
 
         return appliedOp
         )
 
+
 expressionParserL2 :: Parser (E Float)
 expressionParserL2 = do
     sequenceParser expressionParserL3 (do
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         appliedOp <- defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["!=", "==", ">=", "<=", ">", "<"]
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
 
         return appliedOp
         )
@@ -161,9 +170,9 @@ expressionParserL2 = do
 expressionParserL1 :: Parser (E Float)
 expressionParserL1 = do
     sequenceParser expressionParserL2 (do
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         appliedOp <- defineActionByZnak <$> wordParser "&&"
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
 
         return appliedOp
         )
@@ -172,9 +181,9 @@ expressionParserL1 = do
 expressionParserL0 :: Parser (E Float)
 expressionParserL0 = do
     sequenceParser expressionParserL1 (do
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
         appliedOp <- defineActionByZnak <$> wordParser "||"
-        possibleSeparatorParser
+        possibleSeparatorParser Inline
 
         return appliedOp
         )
