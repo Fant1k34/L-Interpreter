@@ -112,9 +112,9 @@ start5 = do
 
 start6 :: IO (Either String (E Float))
 start6 = do
-    let code = getParserFunc (parserFunc "main" []) "getStr name <- { write \"Please, type your code, \" + name; read } x := \"Hello\"; y := getStr \"Nikita\"; if x == y then { write \"They are equal\" } else { write \"They are NOT equal\" }"
+    let code = getParserFunc (parserFunc "main" []) "fib n <- { if n == 0 || n == 1 then { 1 } else { fib(n - 1) + fib(n - 2) } } write fib(25)"
 
-    -- print code
+    print code
 
     case code of
         Left comment -> (do

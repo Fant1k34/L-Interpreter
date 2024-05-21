@@ -86,9 +86,18 @@ parseBooleanToExpr = (\parsed -> if parsed == "True" then Boolean True else Bool
 parseFunctionCallToExpr :: Parser (E Float)
 parseFunctionCallToExpr = do
     funName <- parseIndet
-    separatorParser
-    args <- parserWithSeparator parserExpr separatorParser
-
+    possibleSeparatorParser
+    
+    satisfy (=='(')
+    possibleSeparatorParser
+    args <- parserWithSeparator parserExpr (do
+        possibleSeparatorParser
+        wordParser ","
+        possibleSeparatorParser
+        )
+    possibleSeparatorParser
+    satisfy (==')')
+    
     return (FunCall funName args)
 
 
