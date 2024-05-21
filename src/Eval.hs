@@ -66,15 +66,34 @@ evalExpr (CE (Boolean True) op expr2) = case op of
     And -> (do
         evalExpr expr2
         )
-    _ -> StateT.lift $ lift $ Left $ "Wrong condition for expression: True " ++ (show op) ++ (show expr2)
+    _ -> StateT.lift $ lift $ Left $ "Wrong condition for expression: True " ++ show op ++ show expr2
 
 
 evalExpr (CE expr1 op expr2) = do
     exprEvaluated1 <- evalExpr expr1
-    exprEvaluated2 <- evalExpr expr2
-    let operation = defineOperation op
 
-    StateT.lift $ lift $ operation exprEvaluated1 exprEvaluated2
+    case exprEvaluated1 of
+        -- Lazy computations
+        Boolean True | op == Or -> StateT.lift $ lift $ Right (Boolean True)
+                     | op == And -> (do
+                        exprEvaluated2 <- evalExpr expr2
+
+                        StateT.lift $ lift $ Right exprEvaluated2
+                     )
+        Boolean False | op == And -> StateT.lift $ lift $ Right (Boolean False)
+                      | op == Or -> (do
+                        exprEvaluated2 <- evalExpr expr2
+
+                        StateT.lift $ lift $ Right exprEvaluated2
+                     )
+        -- Usual computations
+        _ -> (do
+            exprEvaluated2 <- evalExpr expr2
+            let operation = defineOperation op
+
+            StateT.lift $ lift $ operation exprEvaluated1 exprEvaluated2
+            )
+    
 
 -- TODO: Подумать, как запретить создавать функции с одинаковыми именами
 evalExpr (FunCall funCallName sentArgs) = do
@@ -117,7 +136,7 @@ evalStatement (Write value) = do
 
 
     case filename of
-        (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> case name of 
+        (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> case name of
             "str.out" -> print valueToWrite
             _ -> appendFile name (show valueToWrite ++ "\n")
         _ -> StateT.lift $ lift $ Left "Variable outputFile is overriden wrongly, no possibility to write to file"
@@ -135,7 +154,7 @@ evalStatement (Pris var expr) = do
 
     let modifedVarList = case lookup var varList of
             Nothing -> (var, evaluatedExpr) : varList
-            Just _ -> foldl (\prev (key, value) -> 
+            Just _ -> foldl (\prev (key, value) ->
                 if key == var then (key, evaluatedExpr) : prev else (key, value) : prev
                     ) [] varList
 
@@ -145,7 +164,7 @@ evalStatement (Pris var expr) = do
         [] -> error "Critical Error. Something went wrong. Execution stack cannot be empty"
         (_ : tailOfStackExec) -> tailOfStackExec
         )
-    
+
     Control.Monad.Trans.State.Lazy.modify (modifedStack :)
 
     StateT.lift $ lift $ Right expr
