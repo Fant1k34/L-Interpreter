@@ -5,14 +5,13 @@ L Interpreter is a Haskell-writen CLI Application that parse and execute code wr
 
 ## Syntax
 
-### Basics
-#### Types
+### Types
 L Language has types:
 - Float (as a number)
 - String
 - Boolean
 
-#### Variables
+### Variables
 ```L language
 x := 5
 y := 15.423
@@ -20,8 +19,8 @@ z := x * y + 1
 stringVar := "Example"  
 ```
 
-#### Expressions
-##### Expression examples
+### Expressions
+#### Expression examples
 L language support expression in the format below
 ```L language
 exprNum := -8 * 91
@@ -31,12 +30,11 @@ exprStr := "Example of " + "string concatenation"
 
 L language does not support "(" and ")" in expression, but it is not nessecary, because of possibility of encapsulating complex logic under the expression into the variables.
 
-##### Priorities for operation in expressions
+#### Priorities for operation in expressions
 L language has different operation priority within expressions:
 - Priority "4" garantee that operation will be executed firstly;
 - Priority "0" garantee that operation will be executed at the end.
 
-| ---------| ---------|
 | Operation| Priority |
 | ---------| ---------|
 | *        | 4        |
@@ -51,9 +49,8 @@ L language has different operation priority within expressions:
 | <=       | 2        |
 | &&       | 1        |
 | ||       | 0        |
-| ---------| ---------|
 
-##### Types of Expressions
+#### Types of Expressions
 Expressions in L language does not have strict type. Variables could changes the type depending on defition. Below you can find example of valid expression named expr and reassigning this expr.
 ```L language
 getInput varName <- {
@@ -71,7 +68,7 @@ expr := "String again"
 expr := True
 ```
 
-##### Lazy computations
+#### Lazy computations
 
 Expressions provide mechanism of lazy computations
 
@@ -91,7 +88,7 @@ b := 7
 expr := False && a * 35.48 / 41 > b * b - 44 || ... 
 ```
 
-##### Conditional computations
+#### Conditional computations
 Not strict types provide light and usefull mechanism to use conditional computations. The code below demonstates the easy behavior of if-else statement without else branch.
 
 ```L language
@@ -107,7 +104,7 @@ a < b || notification ("5 is not greater than 7")
 
 As you can see, the left part is simply dropped. This means the whole expression could have as Boolean type (if the left part is True/False with corresponding functions), as any other type depending on the rest part of expression.
 
-#### If - else
+### If - else
 If-else statement exists in L language and describes possibility of program behavior depending on the condition. In L language both "then" and "else" branches are required.
 
 ```L language
@@ -121,7 +118,7 @@ if a == b then {
  }
 ```
 
-#### While loop
+### While loop
 If-else statement exists in L language and describes possibility of program behavior depending on the condition. In L language both "then" and "else" branches are required.
 
 ```L language
@@ -139,10 +136,10 @@ while userInput != "Nikita" do {
 
 ```
 
-#### Skip
+### Skip
 Keyword that provide you to skip the branch or the body is "skip"
 
-#### Write
+### Write
 Command "write" provide you to write any kind of information to the file. The argument of command write is an expression, so write firstly evaluates it and then writes to the file.
 
 The file, that "write" writes anything, has default value of "output.txt". However, it's possibly to redirect out of the program. The only thing you need to do is override variable "outputFile". This variable is accessible everywhere
@@ -162,7 +159,7 @@ write fib(15)
 
 Moreover, you can easily override it to the value "str.out" to provide program write to console.
 
-#### Read
+### Read
 Command read provide ability to interact with user througth the terminal. It returns the user input.
 As you can see, read is a statement, not an expression. Therefore we need to wrap it into the function and then call a funtion to provide interaction. Otherwise it would not work, because variable binding accepts expression part on the left (not statement)
 
@@ -175,7 +172,7 @@ getUserInput type <- {
 x := getUserInput "example"
 ```
 
-#### Functions
+### Functions
 
 Function is the core element of execution
 You can declare it througth the sytax
@@ -203,4 +200,4 @@ mySum(1, -1)
 abs(-5)
 ```
 
-### Lexical environment
+## Lexical environment
