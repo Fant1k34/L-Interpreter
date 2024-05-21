@@ -7,12 +7,9 @@ module Eval (evalExpr, evalStatement, evalFunc) where
 import Data (F(..), E(..), S(..), X(..), Op2(..))
 import EvalHandlers (defineOperation)
 
-import Data.List (lookup)
-import Text.Printf (printf)
-import Text.Read (readMaybe)
 import Control.Monad.State (MonadState(get), MonadTrans(lift), StateT)
 import Control.Monad.Trans.State.Lazy (modify)
-import Control.Monad.Trans.IO
+import Control.Monad.Trans.IO ( IOT, fromIO )
 
 import qualified Control.Monad.RWS as StateT
 
@@ -118,10 +115,11 @@ evalStatement (Write value) = do
     valueToWrite <- evalExpr value
     filename <- evalExpr (VarAsExpr (Var "outputFile"))
 
-    -- StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> print (show valueToWrite)
 
     case filename of
-        (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> writeFile name (show valueToWrite)
+        (Str name) -> StateT.lift $ fromIO $ (\() -> Right $ Str $ show value) <$> case name of 
+            "str.out" -> print valueToWrite
+            _ -> writeFile name (show valueToWrite)
         _ -> StateT.lift $ lift $ Left "Variable outputFile is overriden wrongly, no possibility to write to file"
 
 evalStatement ReadStr = do

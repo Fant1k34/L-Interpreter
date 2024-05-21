@@ -1,10 +1,10 @@
 {-# OPTIONS_GHC -Wno-unused-do-bind #-}
-module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseNumber, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser, checkReservedNamesParser) where
+module ParserCore (satisfy, some, ParserCore.any, isFullyApplied, parseInt, parseFloat, parseIndet, wordParser, separatorParser, possibleSeparatorParser, parserWithSeparator, succesParser, checkReservedNamesParser) where
 
 
 import Parser (Parser(..))
 
-import Utils
+import Utils ( castCharToInt, concatNumbers )
 
 import Data.Char (isAlpha, isAlphaNum, isNumber, isSeparator)
 import Control.Applicative (Alternative((<|>), empty))
@@ -48,8 +48,8 @@ isFullyApplied = Parser (\input -> if (length input == 0) then Right (input, ())
 
 
 -- Функция парсинга целых чисел
-parseNumber :: Parser Integer
-parseNumber = do
+parseInt :: Parser Integer
+parseInt = do
     numberList <- (castCharToInt <$>) <$> (some (satisfy isNumber))
     let result = Prelude.foldl1 concatNumbers numberList
 

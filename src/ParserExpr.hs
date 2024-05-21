@@ -10,6 +10,15 @@ module ParserExpr (parserExpr) where
 
 import Parser (Parser(..))
 import ParserCore
+    ( satisfy,
+      any,
+      parseFloat,
+      parseIndet,
+      wordParser,
+      possibleSeparatorParser,
+      parserWithSeparator,
+      checkReservedNamesParser,
+      parseInt )
 
 import Control.Applicative (Alternative((<|>), empty))
 
@@ -40,7 +49,7 @@ parseNumberToExpr = (do
 
     return (Number number)
     ) <|> (do
-    number <- parseNumber
+    number <- parseInt
 
     return (Number $ fromInteger number)
     ) <|> (do
@@ -52,7 +61,7 @@ parseNumberToExpr = (do
     ) <|> (do
     satisfy (=='-')
     possibleSeparatorParser
-    number <- parseNumber
+    number <- parseInt
 
     return (Number $ fromInteger (number * (-1)))
     )
@@ -64,10 +73,6 @@ parseIndentToExpr = do
     checkReservedNamesParser var
 
     return (VarAsExpr (Var var))
-
-
-znakParser :: Parser Op2
-znakParser = defineActionByZnak <$> foldl (\prev curr -> prev <|> wordParser curr) empty ["+", "-", "/", "*", "==", "!=", ">=", "<=", ">", "<", "&&", "||"]
 
 
 parseStrToExpr :: Parser (E a)
@@ -87,7 +92,7 @@ parseFunctionCallToExpr :: Parser (E Float)
 parseFunctionCallToExpr = do
     funName <- parseIndet
     possibleSeparatorParser
-    
+
     satisfy (=='(')
     possibleSeparatorParser
     args <- parserWithSeparator parserExpr (do
@@ -97,7 +102,7 @@ parseFunctionCallToExpr = do
         )
     possibleSeparatorParser
     satisfy (==')')
-    
+
     return (FunCall funName args)
 
 
@@ -177,6 +182,4 @@ expressionParserL0 = do
 
 parserExpr :: Parser (E Float)
 parserExpr = do
-    expr <- expressionParserL0
-
-    return expr
+    expressionParserL0

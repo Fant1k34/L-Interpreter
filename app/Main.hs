@@ -10,42 +10,50 @@ import Control.Monad.Trans.State.Lazy (evalStateT)
 import Control.Monad.Trans.IO (runIOT)
 import ParserExpr (parserExpr)
 import Parser (Parser(getParserFunc))
-import ParserStatement (parserStatement)
 import ParserFunc (parserProgram)
 
 main :: IO ()
 main = do
-    print "<L interpreter>: Chose working mode"
-    print "<L interpreter>: Type \"s\" for single execution mode (default)"
-    print "<L interpreter>: Type \"i\" for interactive mode"
+    putStrLn "<L interpreter>: Chose working mode"
+    putStrLn "<L interpreter>: Type \"s\" for single execution mode (default)"
+    putStrLn "<L interpreter>: Type \"i\" for interactive mode"
     mode <- getLine
 
-    if mode == "i" || mode == "i\n" || mode == "I" || mode == "I\n" then (do
-        print "<L interpreter>: Sometime later..."
-        ) else (do
+    if mode == "i" || mode == "i\n" || mode == "I" || mode == "I\n" then interactive else (do
             print "<L interpreter>: Write file name with source code (default: input.txt)"
             sourceCodeFileName <- getLine
 
             if sourceCodeFileName == "\n" || sourceCodeFileName == "" then (do
-                result <- start "input.txt"
+                sourceCode <- readFile "input.txt"
+                result <- start sourceCode
 
                 print result
                 ) else (do
-                    result <- start sourceCodeFileName
+                    sourceCode <- readFile sourceCodeFileName
+                    result <- start sourceCode
 
                     print result
                 )
             )
 
 
+interactive :: IO ()
+interactive = do
+    putStrLn "<L interpreter>: "
+    sourceCode <- getLine
+
+    result <- start sourceCode
+
+    putStrLn $ "<L interpreter>: " ++ show result
+    interactive
+
+
 
 start :: String -> IO (Either String (E Float))
-start inputFile = do
-    sourceCode <- readFile inputFile
+start sourceCode = do
+    let ast = getParserFunc (parserProgram "main" []) sourceCode
 
-    let code = getParserFunc (parserProgram "main" []) sourceCode
-
-    case code of
+    case ast of
         Left comment -> return $ Left $ "Parsing Error: " ++ comment
         Right (leftover, value) -> (do
             result <- runIOT $ evalStateT (evalFunc value []) [([], [(Var "outputFile", Str "output.txt")])]
