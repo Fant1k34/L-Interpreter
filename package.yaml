@@ -24,6 +24,7 @@ dependencies:
 - mtl == 2.3.1
 - transformers == 0.6.1.0
 - acme-iot == 0.1.0.1
+- tasty >= 1.5
 
 ghc-options:
 - -Wall
@@ -60,3 +61,6 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - L-Interpreter
+    - optparse-applicative >=0.14 && <0.18
+    - tasty
+    - tasty-hunit

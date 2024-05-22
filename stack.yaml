@@ -38,6 +38,16 @@ packages:
 #
 extra-deps:
   - acme-iot-0.1.0.1@sha256:2e8e331469a7237c6b32bfdaccb44d657a651abe8ad74ca435cfc8549e664859,646
+  - optparse-applicative-0.17.1.0@sha256:cb5f5f0dc9749846fc0e3df0041a8efee6368cc1cff07336acd4c3b02a951ed6,5147
+  - ansi-wl-pprint-0.6.9@sha256:fb737bc96e2aef34ad595d54ced7a73f648c521ebcb00fe0679aff45ccd49212,2448
+  - tasty-1.5@sha256:8da3f47fff790714f7d676692f1207aac156b41f705c55f14d1d8147a751264b,2787
+  - ansi-terminal-1.1@sha256:1877d280fb0027bd460f42b89abb30ee5490b97db738d21fcd6aacfb8a5dcc62,2892
+  - tagged-0.8.8@sha256:c4fdbd3e1c423af0ccf8eb9e9962620106c34e32ed8e0cc647fb06899a703e04,2880
+  - transformers-compat-0.7.2@sha256:044fb9955f63ee138fcebedfdcbe54afe741f2d5892a2d0bdf3a8052bd342643,5601
+  - ansi-terminal-types-1.1@sha256:135f6a381afa19d53d0a3fe40b6dd47e6666c538b09e4300fbb1438759df3248,1462
+  - colour-2.3.6@sha256:ebdcbf15023958838a527e381ab3c3b1e99ed12d1b25efeb7feaa4ad8c37664a,2378
+  - tasty-hunit-0.10.1@sha256:ebc17b490750d4796b21d44001b852688cc39f9c34e387d5e7958e09b9b3f3b9,1602
+  - call-stack-0.4.0@sha256:ac44d2c00931dc20b01750da8c92ec443eb63a7231e8550188cb2ac2385f7feb,1200
   # - optparse-applicative-0.17.0.0@sha256:b4cf8d9018e5e67cb1f14edb5130b6d05ad8bc1b5f6bd4efaa6ec0b7f28f559d,5132
 # - acme-missiles-0.3
 # - git: https://github.com/commercialhaskell/stack.git
