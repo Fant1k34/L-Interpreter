@@ -111,11 +111,11 @@ optimize :: E a -> E a
 optimize (CE expr1 op expr2) = do
     let optExpr1 = case optimize expr1 of
             CE expr1' op' expr2' -> CE (optimize expr1') op' (optimize expr2')
-            _ -> expr1
+            result -> result
 
     let optExpr2 = case optimize expr2 of
             CE expr1' op' expr2' -> CE (optimize expr1') op' (optimize expr2')
-            _ -> expr2
+            result -> result
     
     case optExpr1 of
         Boolean False | op == Or -> optExpr2
@@ -145,7 +145,7 @@ sequenceParser' p opP leftValue currentOp = (do
     ) <|> (do
     value <- p
 
-    return $ optimize (CE leftValue currentOp value)
+    return $ CE leftValue currentOp value
     )
 
 
@@ -213,4 +213,6 @@ expressionParserL0 = do
 
 parserExpr :: Parser (E Float)
 parserExpr = do
-    expressionParserL0
+    expr <- expressionParserL0
+
+    return $ optimize expr
