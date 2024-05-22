@@ -56,6 +56,7 @@ start sourceCode = do
         Left comment -> return $ Left $ "Parsing Error: " ++ comment
         Right (_, value) -> (do
             result <- runIOT $ evalStateT (evalFunc value []) [([], [(Var "outputFile", Str "output.txt")])]
+            print value
 
             return result
             )

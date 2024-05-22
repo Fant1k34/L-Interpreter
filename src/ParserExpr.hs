@@ -107,6 +107,28 @@ parseFunctionCallToExpr = do
     return (FunCall funName args)
 
 
+optimize :: E a -> E a
+optimize (CE expr1 op expr2) = do
+    let optExpr1 = case optimize expr1 of
+            CE expr1' op' expr2' -> CE (optimize expr1') op' (optimize expr2')
+            _ -> expr1
+
+    let optExpr2 = case optimize expr2 of
+            CE expr1' op' expr2' -> CE (optimize expr1') op' (optimize expr2')
+            _ -> expr2
+    
+    case optExpr1 of
+        Boolean False | op == Or -> optExpr2
+        Boolean True | op == And -> optExpr2
+        _ -> case optExpr2 of
+                Boolean False | op == Or -> optExpr1
+                Boolean True | op == And -> optExpr1
+                _ -> CE optExpr1 op optExpr2
+    
+    
+optimize other = other
+
+
 
 sequenceParser :: Parser (E a) -> Parser Op2 -> Parser (E a)
 sequenceParser p opP = sequenceParser' p opP (Boolean False) Or
@@ -123,14 +145,14 @@ sequenceParser' p opP leftValue currentOp = (do
     ) <|> (do
     value <- p
 
-    return $ CE leftValue currentOp value
+    return $ optimize (CE leftValue currentOp value)
     )
 
 
 expressionParserL5 :: Parser (E Float)
 expressionParserL5 = do
     parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr
-    
+
 
 
 expressionParserL4 :: Parser (E Float)
@@ -142,7 +164,7 @@ expressionParserL4 = do
 
         return appliedOp
         )
-    
+
 
 
 expressionParserL3 :: Parser (E Float)
