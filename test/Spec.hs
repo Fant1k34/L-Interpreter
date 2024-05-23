@@ -25,8 +25,11 @@ mainGroup = testGroup "Parser" [ fromDecimalGroup ]
     fromDecimalGroup = testGroup "Expressions"
       [
         testCase "1.0" $ launchParser "1.0" (Fun "main" [] [] (ExprAsS (Number 1))),
-        testCase "0.15" $ launchParser "0.15" (Fun "main" [] [] (ExprAsS (Number 0.15))),
-        testCase "31.02 * 78984.15" $ launchParser "31.02 * 78984.15" (Fun "main" [] [] (ExprAsS (CE (Number 31.02) Mult (Number 78984.15)))),
+        testCase "  0.15" $ launchParser "  0.15" (Fun "main" [] [] (ExprAsS (Number 0.15))),
+        testCase "  0.15  " $ launchParser "  0.15  " (Fun "main" [] [] (ExprAsS (Number 0.15))),
+        testCase "0.15  " $ launchParser "0.15  " (Fun "main" [] [] (ExprAsS (Number 0.15))),
+        testCase "0.15\t " $ launchParser "0.15\t " (Fun "main" [] [] (ExprAsS (Number 0.15))),
+        testCase "31.02*78984.15" $ launchParser "31.02*78984.15" (Fun "main" [] [] (ExprAsS (CE (Number 31.02) Mult (Number 78984.15)))),
         testCase "2.0 + 95.84" $ launchParser "2.0 + 95.84" (Fun "main" [] [] (ExprAsS (CE (Number 2) Plus (Number 95.84)))),
         testCase "2.0 - 95.84" $ launchParser "2.0 - 95.84" (Fun "main" [] [] (ExprAsS (CE (Number 2) Min (Number 95.84)))),
         testCase "2.0 * 95.84" $ launchParser "2.0 * 95.84" (Fun "main" [] [] (ExprAsS (CE (Number 2) Mult (Number 95.84)))),
