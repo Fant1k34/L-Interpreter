@@ -112,6 +112,12 @@ parserGroup = testGroup "Parser" [ expressionsGroup, statementsGroup, functionsG
           $ launchParser "read" 
             (Fun "main" [] [] ReadStr),
         
+        testCase "TO_DELETE" $ launchParser "successor n <- { n + 1 } successor(3)" (Fun "main" [] [] ReadStr),
+        testCase "TO_DELETE" $ launchParser "successor n <- { n + 1 } n" (Fun "main" [] [] ReadStr),
+        testCase "TO_DELETE" $ launchParser "successorOfSum n m <- { n + m + 1 } successorOfSum(3, 5)" (Fun "main" [] [] ReadStr),
+        testCase "TO_DELETE" $ launchParser "successorIfNot0 n <- { if n != 0 then { n + 1 } else { n } } successorIfNot0(5)" (Fun "main" [] [] ReadStr),
+        testCase "TO_DELETE" $ launchParser "complexLogin n <- { write \"To complex to understand\" if True then { i := 0 while i < 5 do { i := i + 1 } i } else { False } } complexLogin(5)" (Fun "main" [] [] ReadStr),
+        
         testCase "sequence of statements" 
           $ launchParser "read\nread\nwrite \"Something\"\n" 
           -- (Seq Skip )
@@ -131,10 +137,6 @@ parserGroup = testGroup "Parser" [ expressionsGroup, statementsGroup, functionsG
       ]
     functionsGroup = testGroup "Functions" 
       [
-        testCase "if b >= c && d == 3 then { skip } else { skip }" 
-          $ launchParser "if b >= c && d == 3 then { skip } else { skip }" 
-            (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "d")) Eql (Number 3))) (Skip) (Skip))),
-        
         testCase "function with 1 arg"
           $ launchParser "getInput n <- { read } input := getInput(\"\")"
             (Fun "main" [] [Fun "getInput" [Var "n"] [] ReadStr] (Pris (Var "input") (FunCall "getInput" [Str ""]))),
@@ -166,7 +168,7 @@ launchEval ast varList = do
     return result
 
 
-evalGroup = testGroup "Eval" [ expressionsGroup, statementsGroup ]
+evalGroup = testGroup "Eval" [ expressionsGroup, statementsGroup, functionsGroup ]
   where
     expressionsGroup = testGroup "Expressions" 
       [
@@ -209,19 +211,26 @@ evalGroup = testGroup "Eval" [ expressionsGroup, statementsGroup ]
       ]
     statementsGroup = testGroup "Statements" 
       [
-        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (Skip) (Skip))) [(Var "b", Number 3), (Var "c", Number 1)]) @?= Right (Number 6),
-        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (Skip) (Skip))) [(Var "b", Number 1), (Var "c", Number 1)]) @?= Right (Number 0),
-        testCase "expr := 58 * 412.5; expr" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Seq (Seq (Skip) (Pris (Var "expr") (CE (Number 58) Mult (Number 412.5))))) (ExprAsS (VarAsExpr (Var "expr"))) []) @?= Right (Number 23925),
-        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
-        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
-        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
-        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
-        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1)
-
-
-        -- testCase "if cond then { 3 } else { 4 } WITH SEPARATORS" 
-        --   $ launchParser "if\n\n cond\n \nthen\n{3} \t\n\telse {\n4 }\n\t" 
-        --     (Fun "main" [] [] (If (VarAsExpr (Var "cond")) (ExprAsS $ Number 3) (ExprAsS $ Number 4))),
+        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (ExprAsS $ CE (Number 2) Mult (Number 3)) (ExprAsS $ Number 0))) [(Var "b", Number 3), (Var "c", Number 1)]) @?= Right (Number 6),
+        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (ExprAsS $ CE (Number 2) Mult (Number 3)) (ExprAsS $ Number 0))) [(Var "b", Number 1), (Var "c", Number 1)]) @?= Right (Number 0),
+        testCase "expr := 58 * 412.5; expr" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Seq (Seq (Skip) (Pris (Var "expr") (CE (Number 58) Mult (Number 412.5)))) (ExprAsS (VarAsExpr (Var "expr")))) []) @?= Right (Number 23925),
+        testCase "expr := 58 * 412.5; expr := 5 * 15; expr" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Seq (Seq (Seq (Skip) (Pris (Var "expr") (CE (Number 58) Mult (Number 412.5)))) (Pris (Var "expr") (CE (Number 5) Mult (Number 15)))) (ExprAsS (VarAsExpr (Var "expr")))) []) @?= Right (Number (15 * 5)),
+        testCase "skip" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Skip) []) @?= Right (Boolean True),
+        testCase "skip skip" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Seq Skip Skip) []) @?= Right (Boolean True),
+        testCase "i := 0 while i < 5 do { i := i + 1 } i" $ unsafePerformIO (launchEval (Fun "main" [] [] (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr (Var "i")) Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr (Var "i")) Plus (Number 1.0))))) (ExprAsS (VarAsExpr (Var "i"))))) []) @?= Right (Number 5),
+        testCase "i := 0 while i > 5 do { i := i + 1 } i" $ unsafePerformIO (launchEval (Fun "main" [] [] (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr (Var "i")) More (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr (Var "i")) Plus (Number 1.0))))) (ExprAsS (VarAsExpr (Var "i"))))) []) @?= Right (Number 0)
+      ]
+    functionsGroup = testGroup "Functions"
+      [
+        testCase "successor" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (FunCall "successor" [Number 3.0]))) []) @?= Right (Number 4),
+        testCase "try access var inside func" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (VarAsExpr (Var "n")))) []) @?= Left "Variable n does not exist in context",
+        testCase "fun with 2 args" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorOfSum" [Var "n", Var "m"] [] (ExprAsS (CE (CE (VarAsExpr $ Var "n") Plus (VarAsExpr $ Var "m")) Plus (Number 1.0)))] (ExprAsS (FunCall "successorOfSum" [Number 3.0, Number 5.0]))) []) @?= Right (Number 9),
+        testCase "fun with if inside (always True)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 5.0]))) []) @?= Right (Number 6),
+        testCase "fun with if inside (always False)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 0]))) []) @?= Right (Number 0),
+        testCase "complexLogin inside" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean True) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Number 5),
+        testCase "complexLogin inside" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean True) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Boolean False)
+        testCase "recursive func" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (FunCall "successor" [Number 3.0]))) []) @?= Right (Number 4),
+      
       ]
 
 
