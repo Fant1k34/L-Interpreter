@@ -106,7 +106,7 @@ evalExpr (FunCall funCallName sentArgs) = do
                 case filter (\ (Fun name _ _ _) -> name == funCallName) funList of
                     (foundFunction : _) -> Right foundFunction
                     [] -> Left comment
-                 ) (Left $ "Function " ++ show funCallName ++ " does not exist in context") stackEnv
+                 ) (Left $ "Function " ++ funCallName ++ " does not exist in context") stackEnv
 
     case function of
         Left comment -> StateT.lift $ lift $ Left comment

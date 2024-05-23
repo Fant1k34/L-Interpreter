@@ -112,15 +112,8 @@ parserGroup = testGroup "Parser" [ expressionsGroup, statementsGroup, functionsG
           $ launchParser "read" 
             (Fun "main" [] [] ReadStr),
         
-        testCase "TO_DELETE" $ launchParser "successor n <- { n + 1 } successor(3)" (Fun "main" [] [] ReadStr),
-        testCase "TO_DELETE" $ launchParser "successor n <- { n + 1 } n" (Fun "main" [] [] ReadStr),
-        testCase "TO_DELETE" $ launchParser "successorOfSum n m <- { n + m + 1 } successorOfSum(3, 5)" (Fun "main" [] [] ReadStr),
-        testCase "TO_DELETE" $ launchParser "successorIfNot0 n <- { if n != 0 then { n + 1 } else { n } } successorIfNot0(5)" (Fun "main" [] [] ReadStr),
-        testCase "TO_DELETE" $ launchParser "complexLogin n <- { write \"To complex to understand\" if True then { i := 0 while i < 5 do { i := i + 1 } i } else { False } } complexLogin(5)" (Fun "main" [] [] ReadStr),
-        
         testCase "sequence of statements" 
           $ launchParser "read\nread\nwrite \"Something\"\n" 
-          -- (Seq Skip )
             (Fun "main" [] [] $ Seq (Seq (Seq (Seq Skip Skip) ReadStr) ReadStr) (Write $ Str "Something")),
 
         testCase "expr := 58 * 412.5" 
@@ -225,12 +218,17 @@ evalGroup = testGroup "Eval" [ expressionsGroup, statementsGroup, functionsGroup
         testCase "successor" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (FunCall "successor" [Number 3.0]))) []) @?= Right (Number 4),
         testCase "try access var inside func" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (VarAsExpr (Var "n")))) []) @?= Left "Variable n does not exist in context",
         testCase "fun with 2 args" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorOfSum" [Var "n", Var "m"] [] (ExprAsS (CE (CE (VarAsExpr $ Var "n") Plus (VarAsExpr $ Var "m")) Plus (Number 1.0)))] (ExprAsS (FunCall "successorOfSum" [Number 3.0, Number 5.0]))) []) @?= Right (Number 9),
-        testCase "fun with if inside (always True)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 5.0]))) []) @?= Right (Number 6),
-        testCase "fun with if inside (always False)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 0]))) []) @?= Right (Number 0),
-        testCase "complexLogin inside" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean True) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Number 5),
-        testCase "complexLogin inside" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean True) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Boolean False)
+        testCase "fun with if inside (True)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 5.0]))) []) @?= Right (Number 6),
+        testCase "fun with if inside (False)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successorIfNot0" [Var "n"] [] (If (CE (VarAsExpr $ Var "n") NotEql (Number 0.0)) (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0))) (ExprAsS (VarAsExpr $ Var "n")))] (ExprAsS (FunCall "successorIfNot0" [Number 0]))) []) @?= Right (Number 0),
+        testCase "complexLogin inside (always True)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean True) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Number 5),
+        testCase "complexLogin inside (always False)" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "complexLogin" [Var "n"] [] (Seq (Seq (Seq Skip Skip) (Write (Str "To complex to understand"))) (If (Boolean False) (Seq (Seq (Seq (Seq Skip Skip) (Pris (Var "i") (Number 0.0))) (While (CE (VarAsExpr $ Var "i") Less (Number 5.0)) (Pris (Var "i") (CE (VarAsExpr $ Var "i") Plus (Number 1.0))))) (ExprAsS (VarAsExpr $ Var "i"))) (ExprAsS (Boolean False))))] (ExprAsS (FunCall "complexLogin" [Number 5.0]))) []) @?= Right (Boolean False),
         testCase "recursive func" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "successor" [Var "n"] [] (ExprAsS (CE (VarAsExpr $ Var "n") Plus (Number 1.0)))] (ExprAsS (FunCall "successor" [Number 3.0]))) []) @?= Right (Number 4),
-      
+        testCase "inner functions" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "getInput" [Var "n"] [Fun "anotherFunc" [Var "a", Var "b"] [] (ExprAsS (CE (VarAsExpr $ Var "a") Plus (VarAsExpr $ Var "b"))), Fun "oneMoreFunc" [Var "x", Var "y"] [] (Seq 
+            (Seq (Seq (Seq (Seq Skip Skip) (ExprAsS (CE (VarAsExpr $ Var "x") Mult (VarAsExpr $ Var "y")))) (Write (CE (VarAsExpr $ Var "x") Mult (VarAsExpr $ Var "y")))) (Write $ Str "Anything")) (ExprAsS (FunCall "anotherFunc" [VarAsExpr $ Var "x", VarAsExpr $ Var "y"])))] (Seq (Seq (Seq Skip Skip) (ExprAsS (FunCall "oneMoreFunc" [Number 4.0, Number 5.0]))) (ExprAsS (FunCall "anotherFunc" 
+            [Number 2.0,Number 3.0])))] (ExprAsS (FunCall "getInput" [Str ""]))) []) @?= Right (Number 5),
+        testCase "try to access inner function outside" $ unsafePerformIO (launchEval (Fun "main" [] [Fun "getInput" [Var "n"] [Fun "anotherFunc" [Var "a", Var "b"] [] (ExprAsS (CE (VarAsExpr $ Var "a") Plus (VarAsExpr $ Var "b"))), Fun "oneMoreFunc" [Var "x", Var "y"] [] (Seq 
+            (Seq (Seq (Seq (Seq Skip Skip) (ExprAsS (CE (VarAsExpr $ Var "x") Mult (VarAsExpr $ Var "y")))) (Write (CE (VarAsExpr $ Var "x") Mult (VarAsExpr $ Var "y")))) (Write $ Str "Anything")) (ExprAsS (FunCall "anotherFunc" [VarAsExpr $ Var "x", VarAsExpr $ Var "y"])))] (Seq (Seq (Seq Skip Skip) (ExprAsS (FunCall "oneMoreFunc" [Number 4.0, Number 5.0]))) (ExprAsS (FunCall "anotherFunc" 
+            [Number 2.0,Number 3.0])))] (ExprAsS (FunCall "anotherFunc" [Number 4, Number 5]))) []) @?= Left "Function anotherFunc does not exist in context"
       ]
 
 
