@@ -201,3 +201,44 @@ abs(-5)
 ```
 
 ## Lexical environment
+
+Interaction with the lexical environment is implemented using a stack.
+
+The main entry point to the program is the "main" function, which is created automatically. It already contains variables. For example, output File. He is responsible for which file the information will be output to using the write command. This variable can be easily overwritten.
+
+Let's look at the mechanism of the interpreter's work with lexical environments:
+0. The input program is being parsed
+1. All user code is wrapped in the main function
+2. The functions declared by the user inside main are packed into a list and become available inside main. Also, for each internal function, the declared functions are packed into a list, which becomes available only to the internal function.
+    - Consider the example below. The innerFunction1 and innerFunction2 functions are declared inside the main code (main). There is a function named myFunc for each of them, but these are different functions.
+    ```L language
+        innerFunction1 x <- {
+            myFunc y <- {
+                y
+            }
+
+            myFunc(x)
+        }
+
+        innerFunction2 x <- {
+            myFunc y <- {
+                y * y
+            }
+
+            myFunc(x)
+        }
+
+        out1 := innerFunction1(2)
+        out2 := innerFunction2(1)
+    ```
+    - Let's take a look at the conditional scheme of the AST tree. We will omit information about the available variables, we will pay attention only to the functions.
+    - main - [ innerFunction1 - [myFunc], innerFunction2 - [myFunc] ]
+    - Only two functions are available inside main: innerFunction1 and innerFunction2
+    - Inside of innerFunction1: myFunc
+    - Inside of innerFunction2: myFunc
+3. Code execution starts (note that at this stage the code has already been analyzed and all functions have surfaced).
+4. The code is executed line by line
+5. When calling a function, we add the lexical environment of this function to the execution stack. Now we can access local functions (declared inside the executable function) as well as functions inside main. The same principle applies to variables.
+6. When exiting a function, we remove the lexical environment of that function. The execution of the "main" code continues
+7. When executing all commands from "main", the lexical environment of main is removed from the execution stack. The execution of the program is completed.
+
