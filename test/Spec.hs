@@ -166,7 +166,7 @@ launchEval ast varList = do
     return result
 
 
-evalGroup = testGroup "Eval" [ expressionsGroup ]
+evalGroup = testGroup "Eval" [ expressionsGroup, statementsGroup ]
   where
     expressionsGroup = testGroup "Expressions" 
       [
@@ -206,6 +206,22 @@ evalGroup = testGroup "Eval" [ expressionsGroup ]
         testCase "3.0 > 2.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS $ CE (Number 3) More (Number 2))) []) @?= Right (Boolean True),
         testCase "1.0 >= 2.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS $ CE (Number 1) MoreEql (Number 2))) []) @?= Right (Boolean False),
         testCase "3.0 >= 2.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS $ CE (Number 3) MoreEql (Number 2))) []) @?= Right (Boolean True)
+      ]
+    statementsGroup = testGroup "Statements" 
+      [
+        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (Skip) (Skip))) [(Var "b", Number 3), (Var "c", Number 1)]) @?= Right (Number 6),
+        testCase "if b >= c && b == 3 then { 2 * 3 } else { 0 }" $ unsafePerformIO (launchEval (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "b")) Eql (Number 3))) (Skip) (Skip))) [(Var "b", Number 1), (Var "c", Number 1)]) @?= Right (Number 0),
+        testCase "expr := 58 * 412.5; expr" $ unsafePerformIO (launchEval (Fun "main" [] [] $ Seq (Seq (Skip) (Pris (Var "expr") (CE (Number 58) Mult (Number 412.5))))) (ExprAsS (VarAsExpr (Var "expr"))) []) @?= Right (Number 23925),
+        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
+        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
+        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
+        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1),
+        testCase "1.0" $ unsafePerformIO (launchEval (Fun "main" [] [] (ExprAsS (Number 1))) []) @?= Right (Number 1)
+
+
+        -- testCase "if cond then { 3 } else { 4 } WITH SEPARATORS" 
+        --   $ launchParser "if\n\n cond\n \nthen\n{3} \t\n\telse {\n4 }\n\t" 
+        --     (Fun "main" [] [] (If (VarAsExpr (Var "cond")) (ExprAsS $ Number 3) (ExprAsS $ Number 4))),
       ]
 
 
