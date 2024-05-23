@@ -1,7 +1,7 @@
 import Test.Tasty ( defaultMain, testGroup, TestTree )
 import Test.Tasty.HUnit ((@?=), testCase, assertBool, assertFailure, Assertion)
 
-import Data (E(..), X(..), F (Fun), S (ExprAsS), Op2(..))
+import Data (E(..), X(..), F (Fun), S (..), Op2(..))
 import Eval (evalFunc)
 
 import Control.Monad.Trans.State.Lazy (evalStateT)
@@ -20,9 +20,9 @@ launchParser sourceCode correctValue = do
 
 
 mainGroup :: TestTree
-mainGroup = testGroup "Parser" [ fromDecimalGroup ]
+mainGroup = testGroup "Parser" [ expressionsGroup, statementsGroup ]
   where
-    fromDecimalGroup = testGroup "Expressions"
+    expressionsGroup = testGroup "Expressions"
       [
         testCase "1.0" $ launchParser "1.0" (Fun "main" [] [] (ExprAsS (Number 1))),
         testCase "  0.15" $ launchParser "  0.15" (Fun "main" [] [] (ExprAsS (Number 0.15))),
@@ -67,6 +67,52 @@ mainGroup = testGroup "Parser" [ fromDecimalGroup ]
         testCase "a < b || b >= c && d == 3" $ launchParser "a < b || b >= c && d == 3"
          (Fun "main" [] [] (ExprAsS $ CE (CE (VarAsExpr (Var "a")) Less (VarAsExpr (Var "b"))) Or
           (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "d")) Eql (Number 3)))  ))
+      ]
+    statementsGroup = testGroup "Statements" 
+      [
+        testCase "if b >= c && d == 3 then { skip } else { skip }" 
+          $ launchParser "if b >= c && d == 3 then { skip } else { skip }" 
+            (Fun "main" [] [] (If (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "d")) Eql (Number 3))) (Skip) (Skip))),
+
+        testCase "if cond then { 3 } else { 4 }" 
+          $ launchParser "if cond then { 3 } else { 4 }" 
+            (Fun "main" [] [] (If (VarAsExpr (Var "cond")) (ExprAsS $ Number 3) (ExprAsS $ Number 4))),
+        
+        testCase "if cond then { 3 } else { 4 } WITH SEPARATORS" 
+          $ launchParser "if\n\n cond\n \nthen\n{3} \t\n\telse {\n4 }\n\t" 
+            (Fun "main" [] [] (If (VarAsExpr (Var "cond")) (ExprAsS $ Number 3) (ExprAsS $ Number 4))),
+        
+        testCase "while b >= c && d == 3 do { 3 }" 
+          $ launchParser "while b >= c && d == 3 do { 3 }" 
+            (Fun "main" [] [] (While (CE (CE (VarAsExpr (Var "b")) MoreEql (VarAsExpr (Var "c"))) And (CE (VarAsExpr (Var "d")) Eql (Number 3))) (ExprAsS $ Number 3))),
+
+        testCase "while cond do { 3 }" 
+          $ launchParser "while cond do { 3 }" 
+            (Fun "main" [] [] (While (VarAsExpr (Var "cond")) (ExprAsS $ Number 3))),
+        
+        testCase "while cond do { 3 } WITH SEPARATOR" 
+          $ launchParser "while \n\tcond \tdo\n\n\n\n { \n\t\t3}" 
+            (Fun "main" [] [] (While (VarAsExpr (Var "cond")) (ExprAsS $ Number 3))),
+        
+        testCase "Nested IF and WHILE" 
+          $ launchParser "if cond then { while cond do { 3 } } else { if cond then { while cond do { 3 } } else { \"Мяу\" } }" 
+            (Fun "main" [] [] (If (VarAsExpr (Var "cond")) (While (VarAsExpr (Var "cond")) (ExprAsS $ Number 3)) (If (VarAsExpr (Var "cond")) (While (VarAsExpr (Var "cond")) (ExprAsS $ Number 3)) (ExprAsS (Str "Мяу"))))),
+
+        testCase "write \"Result \" + \"VALUE\"" 
+          $ launchParser "write \"Result \" + \"VALUE\"" 
+            (Fun "main" [] [] (Write $ CE (Str "Result ") Plus (Str "VALUE"))),
+        
+        testCase "write \"Result \" + \"VALUE\" WITH SEPARATOR" 
+          $ launchParser "write   \t\"Result \" + \"VALUE\"" 
+            (Fun "main" [] [] (Write $ CE (Str "Result ") Plus (Str "VALUE"))),
+
+        testCase "read" 
+          $ launchParser "read" 
+            (Fun "main" [] [] ReadStr)
+        
+        -- testCase "sequence of statements" 
+        --   $ launchParser "read\nread\nwrite \"Something\"\n" 
+        --     (Fun "main" [] [] $ Seq (Seq (ReadStr) (ReadStr)) (Write (Str "Something")))
       ]
 
 
