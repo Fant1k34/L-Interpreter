@@ -151,7 +151,25 @@ sequenceParser' p opP leftValue currentOp = (do
 
 expressionParserL5 :: Parser (E Float)
 expressionParserL5 = do
-    parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr
+    parseNumberToExpr <|> parseStrToExpr <|> parseBooleanToExpr <|> parseFunctionCallToExpr <|> parseIndentToExpr <|> (do
+        satisfy (=='(')
+        possibleSeparatorParser Inline
+        expr <- parserExpr
+        possibleSeparatorParser Inline
+        satisfy (==')')
+
+        return expr
+        ) <|> (do
+        satisfy (=='-')
+        possibleSeparatorParser Inline
+        satisfy (=='(')
+        possibleSeparatorParser Inline
+        expr <- parserExpr
+        possibleSeparatorParser Inline
+        satisfy (==')')
+
+        return $ CE (Number $ -1) Mult expr 
+        )
 
 
 
