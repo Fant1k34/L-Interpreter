@@ -28,7 +28,12 @@ exprBool := True || True && False
 exprStr := "Example of " + "string concatenation"
 ```
 
-L language does not support "(" and ")" in expression, but it is not nessecary, because of possibility of encapsulating complex logic under the expression into the variables.
+L language supports brackets "(" and ")" in expression. Below you can find examples of valid expressions
+```L language
+exprNum1 := 8 * (3 + 6)
+exprNum2 := (-(8 * -(3 + 6)) + (7 * 6)) * 2
+exprBool := (True || True) && False
+```
 
 #### Priorities for operation in expressions
 L language has different operation priority within expressions:
